@@ -19,6 +19,8 @@ export function ProductDetails() {
     product?.options ? product.options[0] : undefined
   );
   
+  const [selectedImage, setSelectedImage] = useState(product?.images?.[0] || product?.imageUrl);
+  
   if (!product) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
@@ -36,12 +38,21 @@ export function ProductDetails() {
   const handleAddToCart = () => {
     if (product.options && !selectedOption) {
       alert('Por favor, selecione uma opção.');
-      return;
+      return; // Do not proceed
     }
     addItem(product, selectedOption);
   };
 
   const relatedProducts = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+
+  const imagesList = product.images && product.images.length > 0 ? product.images : [product.imageUrl];
+
+  const renderPaymentInfo = () => {
+    if (product.installments && product.installments > 1 && product.paymentType === 'Cartão de Crédito') {
+      return `em até ${product.installments}x de ${formatPrice(product.price / product.installments)} sem juros`;
+    }
+    return `Pagamento ${product.paymentType || 'À vista'}`;
+  };
 
   return (
     <div className="min-h-screen">
@@ -49,6 +60,8 @@ export function ProductDetails() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
         <nav className="flex items-center space-x-2 text-xs font-sans text-zinc-500">
           <button onClick={() => navigate('/')} className="hover:text-wine-800 transition-colors">Home</button>
+          <ChevronRight className="w-3 h-3" />
+          <span className="hover:text-wine-800 transition-colors cursor-pointer">{product.department || 'Produtos'}</span>
           <ChevronRight className="w-3 h-3" />
           <span className="hover:text-wine-800 transition-colors cursor-pointer">{product.category}</span>
           <ChevronRight className="w-3 h-3" />
@@ -62,7 +75,7 @@ export function ProductDetails() {
           <div className="w-full md:w-1/2">
             <div className="aspect-[3/4] bg-zinc-100 relative group">
               <img 
-                src={product.imageUrl} 
+                src={selectedImage} 
                 alt={product.name} 
                 className="w-full h-full object-cover"
               />
@@ -75,10 +88,14 @@ export function ProductDetails() {
                 </button>
               </div>
             </div>
-            {/* Thumbnails (mocked) */}
+            {/* Thumbnails */}
             <div className="grid grid-cols-4 gap-2 mt-2">
-              {[product.imageUrl, product.imageUrl, product.imageUrl].map((img, idx) => (
-                <div key={idx} className={`aspect-[3/4] bg-zinc-100 cursor-pointer ${idx === 0 ? 'border border-wine-800' : 'opacity-70 hover:opacity-100'}`}>
+              {imagesList.map((img, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => setSelectedImage(img)}
+                  className={`aspect-[3/4] bg-zinc-100 cursor-pointer ${selectedImage === img ? 'border border-wine-800' : 'opacity-70 hover:opacity-100'}`}
+                >
                   <img src={img} alt="" className="w-full h-full object-cover" />
                 </div>
               ))}
@@ -95,7 +112,7 @@ export function ProductDetails() {
                 {formatPrice(product.price)}
               </div>
               <p className="text-sm font-sans text-zinc-500 mt-2">
-                em até 3x de {formatPrice(product.price / 3)} sem juros
+                {renderPaymentInfo()}
               </p>
             </div>
 

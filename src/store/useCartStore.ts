@@ -6,8 +6,12 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  imageUrl: string;
-  category: string;
+  imageUrl: string; // Keep as main image for backwards compatibility
+  images?: string[]; // Up to 8 images
+  department?: string; // e.g. Acessórios
+  category: string; // e.g. Brincos
+  installments?: number; // Installments count (e.g. 12)
+  paymentType?: string; // 'credit', 'pix', etc
   options?: string[];
 }
 
