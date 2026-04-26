@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MOCK_PRODUCTS } from '../data/mock';
 import { useState } from 'react';
 import { useCartStore } from '../store/useCartStore';
+import { useProductStore } from '../store/useProductStore';
 import { formatPrice } from '../lib/utils';
 import { ChevronRight, Heart, Share2, Ruler } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
@@ -10,8 +11,10 @@ export function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem, openCart } = useCartStore();
+  const { products: registeredProducts } = useProductStore();
   
-  const product = MOCK_PRODUCTS.find(p => p.id === id);
+  const allProducts = [...registeredProducts, ...MOCK_PRODUCTS];
+  const product = allProducts.find(p => p.id === id);
   const [selectedOption, setSelectedOption] = useState<string | undefined>(
     product?.options ? product.options[0] : undefined
   );
@@ -38,7 +41,7 @@ export function ProductDetails() {
     addItem(product, selectedOption);
   };
 
-  const relatedProducts = MOCK_PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const relatedProducts = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
 
   return (
     <div className="min-h-screen">

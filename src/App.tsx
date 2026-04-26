@@ -1,13 +1,21 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from './components/layout/Navbar';
 import { MenuDrawer } from './components/layout/MenuDrawer';
 import { CartDrawer } from './components/layout/CartDrawer';
 import { Home } from './pages/Home';
 import { ProductDetails } from './pages/ProductDetails';
+import { Admin } from './pages/Admin';
+import { useProductStore } from './store/useProductStore';
 
 function Layout({ children }: { children: React.ReactNode }) {
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { init } = useProductStore();
+
+  useEffect(() => {
+    init();
+  }, [init]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white border-0 md:border-8 border-zinc-100/50">
@@ -38,12 +46,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/produto/:id" element={<ProductDetails />} />
-          {/* Admin route placeholder */}
-          <Route path="/admin" element={
-            <div className="min-h-[60vh] flex items-center justify-center">
-              <h2 className="font-serif justify-center text-4xl">Área Administrativa (Em breve)</h2>
-            </div>
-          } />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </Layout>
     </Router>

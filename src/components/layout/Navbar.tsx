@@ -2,6 +2,7 @@ import { Menu, Search, ShoppingBag, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCartStore } from '../../store/useCartStore';
+import { useProductStore } from '../../store/useProductStore';
 import { MOCK_PRODUCTS } from '../../data/mock';
 import { cn, formatPrice } from '../../lib/utils';
 import { AnimatePresence, motion } from 'motion/react';
@@ -12,11 +13,17 @@ interface NavbarProps {
 
 export function Navbar({ onOpenMenu }: NavbarProps) {
   const { getTotals, openCart } = useCartStore();
+  const { logoUrl } = useProductStore();
   const { totalItems } = getTotals();
   
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState(MOCK_PRODUCTS);
+  
+  // Combine mocked products + registered products for search
+  const { products: registeredProducts } = useProductStore();
+  const allProducts = [...registeredProducts, ...MOCK_PRODUCTS];
+  
+  const [searchResults, setSearchResults] = useState(allProducts);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -26,7 +33,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
     
     // Debounce effect logic (simple version)
     const timeoutId = setTimeout(() => {
-      const results = MOCK_PRODUCTS.filter(p => 
+      const results = allProducts.filter(p => 
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         p.category.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -34,7 +41,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
     }, 300);
     
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, registeredProducts]);
 
   return (
     <>
@@ -57,11 +64,22 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
           {/* Center: Logo */}
           <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
             <Link to="/" className="flex flex-col items-center">
-              <img 
-                src={import.meta.env.VITE_LOGO_URL || "/logo.png"}
-                alt="Amarena Style" 
-                className="h-10 md:h-12 object-contain mix-blend-multiply" 
-              />
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Amarena Style" 
+                  className="h-10 md:h-12 object-contain mix-blend-multiply" 
+                />
+              ) : (
+                <>
+                  <span className="font-serif text-2xl md:text-3xl tracking-tight text-wine-800 font-normal leading-none">
+                    Amarena Style
+                  </span>
+                  <span className="text-[8px] md:text-[9px] tracking-[0.3em] uppercase mt-1 text-zinc-600">
+                    Leveza & Movimento
+                  </span>
+                </>
+              )}
             </Link>
           </div>
 

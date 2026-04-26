@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MOCK_PRODUCTS } from '../data/mock';
 import { ProductCard } from '../components/product/ProductCard';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { useProductStore } from '../store/useProductStore';
 
 const BANNERS = [
   {
@@ -20,6 +21,10 @@ const BANNERS = [
 
 export function Home() {
   const [currentBanner, setCurrentBanner] = useState(0);
+  const { products: registeredProducts } = useProductStore();
+  
+  // Combine registered products with mock products
+  const displayProducts = [...registeredProducts, ...MOCK_PRODUCTS].slice(0, 8); // Adjusted to show up to 8
 
   const nextBanner = () => {
     setCurrentBanner((prev) => (prev === BANNERS.length - 1 ? 0 : prev + 1));
@@ -64,7 +69,7 @@ export function Home() {
         </div>
         
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {MOCK_PRODUCTS.slice(0, 4).map((product, idx) => (
+          {displayProducts.map((product, idx) => (
             <ProductCard key={product.id} product={product} index={idx + 1} />
           ))}
         </div>
