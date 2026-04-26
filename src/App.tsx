@@ -1,0 +1,52 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useState } from 'react';
+import { Navbar } from './components/layout/Navbar';
+import { MenuDrawer } from './components/layout/MenuDrawer';
+import { CartDrawer } from './components/layout/CartDrawer';
+import { Home } from './pages/Home';
+import { ProductDetails } from './pages/ProductDetails';
+
+function Layout({ children }: { children: React.ReactNode }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen flex flex-col bg-white border-0 md:border-8 border-zinc-100/50">
+      <Navbar onOpenMenu={() => setIsMenuOpen(true)} />
+      <MenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+      <CartDrawer />
+      
+      <main className="flex-1 flex flex-col">
+        {children}
+      </main>
+
+      <footer className="h-16 md:h-12 border-t border-zinc-100 flex flex-col md:flex-row items-center justify-between px-4 md:px-8 text-[9px] uppercase tracking-[0.2em] text-zinc-400 mt-auto bg-white pb-4 md:pb-0 z-10 w-full max-w-7xl mx-auto gap-4 md:gap-0 pt-4 md:pt-0">
+        <div className="text-center md:text-left">&copy; {new Date().getFullYear()} Amarena Style. Todos os direitos reservados.</div>
+        <div className="flex gap-6 md:gap-8 justify-center">
+          <span className="cursor-pointer hover:text-zinc-600 transition-colors">Privacidade</span>
+          <span className="cursor-pointer hover:text-zinc-600 transition-colors">Termos</span>
+          <span className="cursor-pointer hover:text-zinc-600 transition-colors">Ajuda</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/produto/:id" element={<ProductDetails />} />
+          {/* Admin route placeholder */}
+          <Route path="/admin" element={
+            <div className="min-h-[60vh] flex items-center justify-center">
+              <h2 className="font-serif justify-center text-4xl">Área Administrativa (Em breve)</h2>
+            </div>
+          } />
+        </Routes>
+      </Layout>
+    </Router>
+  );
+}
+

@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: 'Playfair Display', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+  --color-wine-50: #f5eff2;
+  --color-wine-100: #eadde2;
+  --color-wine-200: #d6bccc;
+  --color-wine-300: #b992ac;
+  --color-wine-400: #9a6586;
+  --color-wine-500: #814669;
+  --color-wine-600: #6d3353;
+  --color-wine-700: #5b2642;
+  --color-wine-800: #4b2c3b; /* Amarena Style Wine */
+  --color-wine-900: #422131;
+  --color-wine-950: #250d17;
+  
+  --color-primary: var(--color-wine-800);
+}
+
+@layer base {
+  body {
+    @apply text-zinc-900 bg-white font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
