@@ -267,8 +267,8 @@ export function Admin() {
       )}
 
       {activeTab === 'products' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 bg-white p-6 border border-zinc-100 h-fit lg:sticky lg:top-24">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          <div className="w-full lg:w-1/3 bg-white p-6 border border-zinc-100 lg:sticky lg:top-24 flex-shrink-0">
             <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-6">
               {editingId ? 'Editar Produto' : 'Novo Produto'}
             </h2>
@@ -360,14 +360,14 @@ export function Admin() {
                     Cancelar
                   </button>
                 )}
-                <button type="submit" disabled={isUploadingProduct} className="flex-2 bg-wine-800 text-white w-full py-3 text-xs uppercase tracking-widest font-bold hover:bg-wine-900 transition-colors disabled:opacity-50">
+                <button type="submit" disabled={isUploadingProduct} className="flex-[2] bg-wine-800 text-white w-full py-3 text-xs uppercase tracking-widest font-bold hover:bg-wine-900 transition-colors disabled:opacity-50">
                   {isUploadingProduct ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
             </form>
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="w-full lg:w-2/3">
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {products.map(p => (
                 <div key={p.id} className="border border-zinc-100 p-3 bg-white relative group">
