@@ -1,16 +1,50 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { X, Minus, Plus, Trash2, ShoppingBag, Ticket, Check, AlertCircle } from 'lucide-react';
 import { useCartStore } from '../../store/useCartStore';
+import { useProductStore } from '../../store/useProductStore';
 import { formatPrice, formatWhatsAppMessage } from '../../lib/utils';
 import { useState } from 'react';
 
 export function CartDrawer() {
-  const { isCartOpen, closeCart, items, updateQuantity, removeItem, getTotals, clearCart } = useCartStore();
-  const { totalPrice } = getTotals();
+  const { isCartOpen, closeCart, items, updateQuantity, removeItem, getTotals, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCartStore();
+  const { totalPrice, discountAmount, finalPrice } = getTotals();
+  const { validateCoupon, redeemCoupon } = useProductStore();
 
-  const handleCheckout = () => {
+  const [couponInput, setCouponInput] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    
+    setIsValidating(true);
+    setCouponError(null);
+    
+    const result = await validateCoupon(couponInput);
+    
+    if (result.success) {
+      applyCoupon(result.coupon);
+      setCouponInput('');
+    } else {
+      setCouponError(result.message || 'Erro ao validar cupom.');
+    }
+    
+    setIsValidating(false);
+  };
+
+  const handleCheckout = async () => {
     if (items.length === 0) return;
-    const url = formatWhatsAppMessage(items, totalPrice);
+    
+    if (appliedCoupon) {
+      await redeemCoupon(appliedCoupon);
+    }
+
+    const url = formatWhatsAppMessage(
+      items, 
+      finalPrice, 
+      appliedCoupon ? { code: appliedCoupon.code, discount: discountAmount } : null
+    );
+    
     window.open(url, '_blank');
     clearCart();
     closeCart();
@@ -37,7 +71,7 @@ export function CartDrawer() {
             {/* Header */}
             <div className="flex items-center justify-between p-6 md:p-8 border-b border-zinc-100 bg-white shrink-0">
               <span className="font-serif text-xl text-zinc-900 tracking-tight">
-                Seu Carrinho
+                Sua Sacola
               </span>
               <button 
                 onClick={closeCart}
@@ -52,7 +86,7 @@ export function CartDrawer() {
               {items.length === 0 ? (
                 <div className="h-full flex flex-col pt-20">
                   <div className="border-b border-zinc-50 pb-4 text-[10px] text-zinc-400 italic text-center">
-                    Seu carrinho está vazio
+                    Sua sacola está vazia
                   </div>
                 </div>
               ) : (
@@ -113,10 +147,75 @@ export function CartDrawer() {
             {/* Footer */}
             {items.length > 0 && (
               <div className="p-6 md:p-8 shrink-0 bg-white border-t border-zinc-100">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="text-xs uppercase tracking-widest font-semibold text-zinc-900">Subtotal</span>
-                  <span className="text-wine-800 font-serif text-lg">{formatPrice(totalPrice)}</span>
+                {/* Coupon Section */}
+                <div className="mb-6">
+                  {!appliedCoupon ? (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            placeholder="Cupom de desconto"
+                            value={couponInput}
+                            onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                            className="w-full border border-zinc-200 px-3 py-2 text-xs uppercase tracking-widest focus:outline-none focus:border-wine-800"
+                          />
+                        </div>
+                        <button
+                          onClick={handleApplyCoupon}
+                          disabled={isValidating || !couponInput.trim()}
+                          className="bg-wine-800 text-white px-4 py-2 text-[10px] uppercase font-bold tracking-widest hover:bg-wine-900 transition-colors disabled:opacity-50"
+                        >
+                          {isValidating ? '...' : 'Aplicar'}
+                        </button>
+                      </div>
+                      {couponError && (
+                        <p className="text-[10px] text-red-500 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {couponError}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-100 p-2 rounded-sm">
+                      <div className="flex items-center gap-2">
+                        <Ticket className="w-4 h-4 text-green-600" />
+                        <div>
+                          <p className="text-[10px] font-bold text-green-700 uppercase tracking-widest">
+                            Cupom: {appliedCoupon.code}
+                          </p>
+                          <p className="text-[9px] text-green-600">
+                            Desconto aplicado: {appliedCoupon.discount_value ? formatPrice(appliedCoupon.discount_value) : `${appliedCoupon.discount_percent}%`}
+                          </p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={removeCoupon}
+                        className="text-green-700 hover:text-green-900"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                <div className="space-y-2 mb-6">
+                  <div className="flex justify-between items-center text-xs text-zinc-500 uppercase tracking-widest">
+                    <span>Subtotal</span>
+                    <span>{formatPrice(totalPrice)}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between items-center text-xs text-green-600 uppercase tracking-widest font-semibold">
+                      <span>Desconto</span>
+                      <span>-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center pt-2 border-t border-zinc-100">
+                    <span className="text-xs uppercase tracking-widest font-bold text-zinc-900">Total Final</span>
+                    <span className="text-wine-800 font-serif text-xl">{formatPrice(finalPrice)}</span>
+                  </div>
+                </div>
+
                 <div className="space-y-3">
                   <button 
                     onClick={handleCheckout}

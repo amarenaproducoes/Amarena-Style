@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useProductStore, Department } from '../store/useProductStore';
 import { Product } from '../store/useCartStore';
 import { uploadImageToSupabase } from '../lib/storage';
+import { supabase } from '../lib/supabase';
 import { Plus, Trash2, Edit2, X, Upload } from 'lucide-react';
 
 export function Admin() {
@@ -11,7 +12,81 @@ export function Admin() {
     pinnedProductIds, setPinnedProducts, getProductViewsInRange
   } = useProductStore();
   
-  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons'>('products');
+
+  // Coupons State
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [couponHistory, setCouponHistory] = useState<any[]>([]);
+  const [isLoadingCoupons, setIsLoadingCoupons] = useState(false);
+  const [isSavingCoupon, setIsSavingCoupon] = useState(false);
+  const [editingCouponId, setEditingCouponId] = useState<string | null>(null);
+  const [couponForm, setCouponForm] = useState({
+    code: '',
+    discount_value: '',
+    discount_percent: '',
+    expiration_date: '',
+    qtde_disponivel: '0'
+  });
+
+  const fetchCoupons = async () => {
+    setIsLoadingCoupons(true);
+    try {
+      const { data: couponsData } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
+      const { data: historyData } = await supabase.from('coupon_history').select('*').order('used_at', { ascending: false });
+      setCoupons(couponsData || []);
+      setCouponHistory(historyData || []);
+    } finally {
+      setIsLoadingCoupons(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'coupons') {
+      fetchCoupons();
+    }
+  }, [activeTab]);
+
+  const handleSaveCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingCoupon(true);
+    try {
+      // Set expiration to the very end of the selected day (23:59:59)
+      const expirationDate = new Date(`${couponForm.expiration_date}T23:59:59`);
+      
+      const payload = {
+        code: couponForm.code.toUpperCase(),
+        discount_value: couponForm.discount_value ? parseFloat(couponForm.discount_value) : null,
+        discount_percent: couponForm.discount_percent ? parseFloat(couponForm.discount_percent) : null,
+        expiration_date: expirationDate.toISOString(),
+        qtde_disponivel: parseInt(couponForm.qtde_disponivel) || 0
+      };
+
+      const { error } = editingCouponId 
+        ? await supabase.from('coupons').update(payload).eq('id', editingCouponId)
+        : await supabase.from('coupons').insert([payload]);
+
+      if (error) {
+        console.error('Error saving coupon:', error);
+        alert(`Erro ao salvar cupom: ${error.message}`);
+        return;
+      }
+      
+      setCouponForm({ code: '', discount_value: '', discount_percent: '', expiration_date: '', qtde_disponivel: '0' });
+      setEditingCouponId(null);
+      fetchCoupons();
+    } catch (err: any) {
+      console.error('Unexpected error saving coupon:', err);
+      alert('Ocorreu um erro inesperado ao salvar o cupom.');
+    } finally {
+      setIsSavingCoupon(false);
+    }
+  };
+
+  const deleteCoupon = async (id: string) => {
+    if (!window.confirm('Excluir este cupom?')) return;
+    await supabase.from('coupons').delete().eq('id', id);
+    fetchCoupons();
+  };
 
   // Ranking data state
   const [rankingData, setRankingData] = useState<{
@@ -392,7 +467,123 @@ export function Admin() {
         >
           Ranking e Destaques
         </button>
+        <button 
+          className={`py-2 px-4 md:px-6 font-semibold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'coupons' ? 'border-b-2 border-wine-800 text-wine-800' : 'text-zinc-500'}`}
+          onClick={() => setActiveTab('coupons')}
+        >
+          Cupons
+        </button>
       </div>
+
+      {activeTab === 'coupons' && (
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-6 border border-zinc-100 shadow-sm h-fit">
+              <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-6">
+                {editingCouponId ? 'Editar Cupom' : 'Novo Cupom'}
+              </h2>
+              <form onSubmit={handleSaveCoupon} className="space-y-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Código do Cupom</label>
+                  <input required type="text" value={couponForm.code} onChange={e => setCouponForm({...couponForm, code: e.target.value.toUpperCase()})} className="w-full border p-2 text-sm outline-none" placeholder="EX: VERAO10" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Desconto (R$)</label>
+                    <input type="number" step="0.01" value={couponForm.discount_value} onChange={e => setCouponForm({...couponForm, discount_value: e.target.value, discount_percent: ''})} className="w-full border p-2 text-sm outline-none" placeholder="0.00" disabled={!!couponForm.discount_percent} />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Desconto (%)</label>
+                    <input type="number" step="0.1" value={couponForm.discount_percent} onChange={e => setCouponForm({...couponForm, discount_percent: e.target.value, discount_value: ''})} className="w-full border p-2 text-sm outline-none" placeholder="0" disabled={!!couponForm.discount_value} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Data de Validade</label>
+                  <input required type="date" value={couponForm.expiration_date} onChange={e => setCouponForm({...couponForm, expiration_date: e.target.value})} className="w-full border p-2 text-sm outline-none" />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Qtd. Disponível</label>
+                  <input required type="number" min="1" value={couponForm.qtde_disponivel} onChange={e => setCouponForm({...couponForm, qtde_disponivel: e.target.value})} className="w-full border p-2 text-sm outline-none" />
+                </div>
+
+                <div className="flex gap-2">
+                  {editingCouponId && (
+                    <button type="button" onClick={() => { setEditingCouponId(null); setCouponForm({ code: '', discount_value: '', discount_percent: '', expiration_date: '', qtde_disponivel: '0' }); }} className="flex-1 bg-zinc-200 text-zinc-800 py-3 text-xs uppercase font-bold">Cancelar</button>
+                  )}
+                  <button type="submit" disabled={isSavingCoupon} className="flex-[2] bg-wine-800 text-white py-3 text-xs uppercase font-bold hover:bg-wine-900 disabled:opacity-50">
+                    {isSavingCoupon ? 'Salvando...' : 'Salvar Cupom'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="md:col-span-2 space-y-4">
+              <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-4">Cupons Ativos</h2>
+              <div className="grid grid-cols-1 gap-3">
+                {coupons.map(c => (
+                  <div key={c.id} className="bg-white border border-zinc-100 p-4 flex justify-between items-center shadow-sm">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-wine-900 tracking-widest">{c.code}</span>
+                        <span className="text-[10px] bg-zinc-100 px-1.5 py-0.5 text-zinc-500 rounded-sm">
+                          {c.discount_value ? `R$ ${c.discount_value}` : `${c.discount_percent}%`}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-zinc-400 space-x-3">
+                        <span>Validade: {new Date(c.expiration_date).toLocaleString('pt-BR')}</span>
+                        <span>Uso: {c.qtde_utilizada} / {c.qtde_disponivel}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => {
+                        setEditingCouponId(c.id);
+                        setCouponForm({
+                          code: c.code,
+                          discount_value: c.discount_value?.toString() || '',
+                          discount_percent: c.discount_percent?.toString() || '',
+                          expiration_date: new Date(c.expiration_date).toISOString().split('T')[0],
+                          qtde_disponivel: c.qtde_disponivel.toString()
+                        });
+                      }} className="p-2 text-zinc-400 hover:text-wine-800"><Edit2 size={16}/></button>
+                      <button onClick={() => deleteCoupon(c.id)} className="p-2 text-zinc-400 hover:text-red-600"><Trash2 size={16}/></button>
+                    </div>
+                  </div>
+                ))}
+                {coupons.length === 0 && <p className="text-zinc-400 text-sm italic py-8 text-center border-2 border-dashed">Nenhum cupom cadastrado.</p>}
+              </div>
+
+              {couponHistory.length > 0 && (
+                <div className="mt-12">
+                  <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-zinc-400 mb-4">Histórico de Uso</h2>
+                  <div className="max-h-60 overflow-y-auto border border-zinc-100 bg-white">
+                    <table className="w-full text-[10px] text-left">
+                      <thead className="bg-zinc-50 border-b">
+                        <tr>
+                          <th className="p-2 uppercase tracking-tight">Cupom</th>
+                          <th className="p-2 uppercase tracking-tight">Desconto</th>
+                          <th className="p-2 uppercase tracking-tight text-right">Data/Hora de Uso</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-50">
+                        {couponHistory.map(h => (
+                          <tr key={h.id}>
+                            <td className="p-2 font-bold">{h.coupon_code}</td>
+                            <td className="p-2">{h.discount_value ? `R$ ${h.discount_value}` : `${h.discount_percent}%`}</td>
+                            <td className="p-2 text-right text-zinc-400">{new Date(h.used_at).toLocaleString('pt-BR')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeTab === 'banners' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

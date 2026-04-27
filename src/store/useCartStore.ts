@@ -35,20 +35,34 @@ export interface CartItem extends Product {
 interface CartStore {
   items: CartItem[];
   isCartOpen: boolean;
+  appliedCoupon: Coupon | null;
   addItem: (product: Product, selectedOption?: string) => void;
   removeItem: (productId: string, selectedOption?: string) => void;
   updateQuantity: (productId: string, quantity: number, selectedOption?: string) => void;
+  applyCoupon: (coupon: Coupon) => void;
+  removeCoupon: () => void;
   clearCart: () => void;
   toggleCart: () => void;
   openCart: () => void;
   closeCart: () => void;
-  getTotals: () => { totalItems: number; totalPrice: number };
+  getTotals: () => { totalItems: number; totalPrice: number; discountAmount: number; finalPrice: number };
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discount_value?: number;
+  discount_percent?: number;
+  expiration_date: string;
+  qtde_disponivel: number;
+  qtde_utilizada: number;
 }
 
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      appliedCoupon: null,
       isCartOpen: false,
       addItem: (product, selectedOption) => {
         set((state) => {
@@ -83,7 +97,9 @@ export const useCartStore = create<CartStore>()(
           ),
         }));
       },
-      clearCart: () => set({ items: [] }),
+      applyCoupon: (coupon) => set({ appliedCoupon: coupon }),
+      removeCoupon: () => set({ appliedCoupon: null }),
+      clearCart: () => set({ items: [], appliedCoupon: null }),
       
       toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
       openCart: () => set({ isCartOpen: true }),
@@ -91,7 +107,7 @@ export const useCartStore = create<CartStore>()(
       
       getTotals: () => {
         const state = get();
-        return state.items.reduce(
+        const totals = state.items.reduce(
           (acc, item) => {
             acc.totalItems += item.quantity;
             acc.totalPrice += item.price * item.quantity;
@@ -99,6 +115,21 @@ export const useCartStore = create<CartStore>()(
           },
           { totalItems: 0, totalPrice: 0 }
         );
+
+        let discountAmount = 0;
+        if (state.appliedCoupon) {
+          if (state.appliedCoupon.discount_value) {
+            discountAmount = state.appliedCoupon.discount_value;
+          } else if (state.appliedCoupon.discount_percent) {
+            discountAmount = (totals.totalPrice * state.appliedCoupon.discount_percent) / 100;
+          }
+        }
+
+        return {
+          ...totals,
+          discountAmount,
+          finalPrice: Math.max(0, totals.totalPrice - discountAmount)
+        };
       },
     }),
     {

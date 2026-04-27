@@ -49,6 +49,8 @@ interface ProductStore {
   registerView: (productId: string) => Promise<void>;
   setPinnedProducts: (ids: string[]) => Promise<void>;
   getProductViewsInRange: (days: number) => Promise<{ [key: string]: number }>;
+  validateCoupon: (code: string) => Promise<{ success: boolean, message?: string, coupon?: any }>;
+  redeemCoupon: (coupon: any) => Promise<void>;
 }
 
 export const useProductStore = create<ProductStore>((set, get) => ({
@@ -264,6 +266,57 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to get product views:', error);
       return {};
+    }
+  },
+
+  validateCoupon: async (code: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', code.toUpperCase())
+        .single();
+
+      if (error || !data) {
+        return { success: false, message: 'Cupom não encontrado.' };
+      }
+
+      const now = new Date();
+      const expirationDate = new Date(data.expiration_date);
+
+      if (now > expirationDate) {
+        return { success: false, message: 'Cupom já está expirado.' };
+      }
+
+      if (data.qtde_utilizada >= data.qtde_disponivel) {
+        return { success: false, message: 'Todos os cupons já foram utilizados.' };
+      }
+
+      return { success: true, coupon: data };
+    } catch (err) {
+      return { success: false, message: 'Erro ao validar cupom.' };
+    }
+  },
+
+  redeemCoupon: async (coupon: any) => {
+    try {
+      // Incrementar qtde_utilizada
+      await supabase
+        .from('coupons')
+        .update({ qtde_utilizada: coupon.qtde_utilizada + 1 })
+        .eq('id', coupon.id);
+
+      // Registrar no histórico
+      await supabase
+        .from('coupon_history')
+        .insert([{
+          coupon_code: coupon.code,
+          discount_value: coupon.discount_value || null,
+          discount_percent: coupon.discount_percent || null,
+          expiration_date: coupon.expiration_date
+        }]);
+    } catch (err) {
+      console.error('Failed to redeem coupon:', err);
     }
   }
 }));

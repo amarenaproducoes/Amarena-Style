@@ -121,7 +121,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
             <button 
               onClick={openCart}
               className="relative p-1.5 md:p-2 -mr-1 md:-mr-2 text-wine-800 transition-colors"
-              aria-label="Abrir carrinho"
+              aria-label="Abrir sacola"
             >
               <ShoppingBag className="w-5 h-5 md:w-[22px] md:h-[22px] stroke-[1.5]" />
               <span className="absolute top-0 right-0 md:top-0 md:right-0 bg-wine-800 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold translate-x-1.5 -translate-y-1.5 md:translate-x-0 md:translate-y-0">
