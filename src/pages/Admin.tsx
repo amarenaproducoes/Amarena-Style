@@ -12,7 +12,81 @@ export function Admin() {
     pinnedProductIds, setPinnedProducts, getProductViewsInRange
   } = useProductStore();
   
-  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales' | 'analytics'>('products');
+
+  // Analytics State
+  const [analyticsData, setAnalyticsData] = useState<{
+    combinations: Array<{ p1: string, p2: string, count: number }>,
+    matrix: Record<string, Record<string, number>>,
+    topProducts: string[]
+  }>({ combinations: [], matrix: {}, topProducts: [] });
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+
+  const fetchAnalyticsData = async () => {
+    setIsLoadingAnalytics(true);
+    try {
+      // Buscar todos os itens de compras agrupados por purchase_id
+      const { data: items, error } = await supabase
+        .from('purchase_items')
+        .select('purchase_id, product_id');
+      
+      if (error) throw error;
+
+      const purchaseGroups: Record<string, string[]> = {};
+      const productCounts: Record<string, number> = {};
+
+      items?.forEach(item => {
+        if (!purchaseGroups[item.purchase_id]) purchaseGroups[item.purchase_id] = [];
+        purchaseGroups[item.purchase_id].push(item.product_id);
+        productCounts[item.product_id] = (productCounts[item.product_id] || 0) + 1;
+      });
+
+      const combinations: Record<string, number> = {};
+      const matrix: Record<string, Record<string, number>> = {};
+
+      Object.values(purchaseGroups).forEach(pIds => {
+        const uniqueIds = [...new Set(pIds)];
+        if (uniqueIds.length < 2) return;
+
+        for (let i = 0; i < uniqueIds.length; i++) {
+          for (let j = i + 1; j < uniqueIds.length; j++) {
+            const [idA, idB] = [uniqueIds[i], uniqueIds[j]].sort();
+            const key = `${idA}|${idB}`;
+            combinations[key] = (combinations[key] || 0) + 1;
+
+            if (!matrix[idA]) matrix[idA] = {};
+            if (!matrix[idB]) matrix[idB] = {};
+            matrix[idA][idB] = (matrix[idA][idB] || 0) + 1;
+            matrix[idB][idA] = (matrix[idB][idA] || 0) + 1;
+          }
+        }
+      });
+
+      const formattedCombinations = Object.entries(combinations)
+        .map(([key, count]) => {
+          const [p1, p2] = key.split('|');
+          return { p1, p2, count };
+        })
+        .sort((a, b) => b.count - a.count);
+
+      const topProducts = Object.entries(productCounts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+        .map(([id]) => id);
+
+      setAnalyticsData({ combinations: formattedCombinations, matrix, topProducts });
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'analytics') {
+      fetchAnalyticsData();
+    }
+  }, [activeTab]);
 
   // Sales Data State
   const [salesData, setSalesData] = useState<{
@@ -595,6 +669,12 @@ export function Admin() {
         >
           Vendas
         </button>
+        <button 
+          className={`py-2 px-4 md:px-6 font-semibold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'analytics' ? 'border-b-2 border-wine-800 text-wine-800' : 'text-zinc-500'}`}
+          onClick={() => setActiveTab('analytics')}
+        >
+          Análise de Vendas
+        </button>
       </div>
 
       {activeTab === 'coupons' && (
@@ -939,6 +1019,138 @@ export function Admin() {
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="space-y-12">
+          {/* Combinations Ranking */}
+          <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
+              <div>
+                <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800">Ranking de Combinações</h2>
+                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-tight">Produtos que mais saem juntos (Kits Orgânicos)</p>
+              </div>
+              <button onClick={fetchAnalyticsData} className="text-xs text-zinc-400 hover:text-wine-800">Atualizar</button>
+            </div>
+            
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {analyticsData.combinations.slice(0, 10).map((comb, idx) => {
+                const p1 = products.find(p => p.id === comb.p1);
+                const p2 = products.find(p => p.id === comb.p2);
+                if (!p1 || !p2) return null;
+
+                return (
+                  <div key={idx} className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-100 rounded-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="flex -space-x-4">
+                        <img src={p1.imageUrl} className="w-12 h-14 object-cover border-2 border-white shadow-sm" />
+                        <img src={p2.imageUrl} className="w-12 h-14 object-cover border-2 border-white shadow-sm" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-wine-800 uppercase tracking-widest">Top {idx + 1}</p>
+                        <p className="text-xs font-semibold text-zinc-900 truncate max-w-[200px]">{p1.name} + {p2.name}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-mono font-bold text-wine-800">{comb.count}</p>
+                      <p className="text-[9px] uppercase tracking-tighter text-zinc-400">Vendas Juntas</p>
+                    </div>
+                  </div>
+                );
+              })}
+              {analyticsData.combinations.length === 0 && (
+                <p className="col-span-full py-8 text-center text-zinc-400 italic text-sm">Sem combinações registradas até o momento.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Affinity Matrix */}
+          <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-zinc-100">
+              <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800">Tabela de Afinidade (Matriz)</h2>
+              <p className="text-xs text-zinc-400 mt-1 uppercase tracking-tight">Frequência de compras entre os 10 produtos mais vendidos</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-center border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50 border-b border-zinc-100">
+                    <th className="p-4 bg-white sticky left-0 z-10 border-r border-zinc-100"></th>
+                    {analyticsData.topProducts.map(pid => {
+                      const p = products.find(prod => prod.id === pid);
+                      return (
+                        <th key={pid} className="p-4 min-w-[100px] text-[10px] font-bold uppercase tracking-widest text-zinc-500 border-r border-zinc-100">
+                          <div className="flex flex-col items-center gap-1">
+                            <img src={p?.imageUrl} className="w-8 h-10 object-cover" />
+                            <span className="truncate w-full">{p?.name.split(' ')[0]}</span>
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {analyticsData.topProducts.map(pidRow => {
+                    const pRow = products.find(p => p.id === pidRow);
+                    return (
+                      <tr key={pidRow} className="border-b border-zinc-50">
+                        <td className="p-4 bg-zinc-50 sticky left-0 z-10 border-r border-zinc-100 text-[10px] font-bold uppercase text-left whitespace-nowrap">
+                          {pRow?.name.split(' ')[0]}
+                        </td>
+                        {analyticsData.topProducts.map(pidCol => {
+                          if (pidRow === pidCol) return <td key={pidCol} className="p-4 bg-zinc-200"></td>;
+                          const count = analyticsData.matrix[pidRow]?.[pidCol] || 0;
+                          return (
+                            <td key={pidCol} className={`p-4 border-r border-zinc-50 font-mono text-sm ${count > 0 ? 'bg-wine-50 text-wine-800 font-bold' : 'text-zinc-300'}`}>
+                              {count}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Recommended Bundles */}
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800">Sugestões de "Compre Junto"</h2>
+              <p className="text-xs text-zinc-400 mt-1 uppercase tracking-tight">Formatos recomendados para promoção baseados nos dados</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {analyticsData.combinations.slice(0, 3).map((comb, idx) => {
+                const p1 = products.find(p => p.id === comb.p1);
+                const p2 = products.find(p => p.id === comb.p2);
+                if (!p1 || !p2) return null;
+
+                return (
+                  <div key={idx} className="bg-white border border-wine-800/10 p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="text-center mb-6">
+                      <span className="bg-wine-800 text-white text-[9px] uppercase font-bold px-3 py-1 tracking-widest rounded-full">Sugestão de Combo</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                      <img src={p1.imageUrl} className="w-16 h-20 object-cover shadow-sm" />
+                      <Plus className="w-4 h-4 text-zinc-400" />
+                      <img src={p2.imageUrl} className="w-16 h-20 object-cover shadow-sm" />
+                    </div>
+                    <div className="space-y-3 text-center">
+                      <p className="text-xs font-bold text-zinc-900 uppercase leading-tight">{p1.name} + {p2.name}</p>
+                      <p className="text-sm font-serif text-wine-800">Combinaram {comb.count} vezes</p>
+                      <div className="pt-4 border-t border-zinc-100 flex flex-col gap-2">
+                        <p className="text-[10px] text-zinc-400 uppercase tracking-widest text-left">Insight de Venda:</p>
+                        <p className="text-[11px] text-zinc-600 leading-relaxed text-left italic">
+                          "Estes itens possuem alta afinidade. Considere oferecer um desconto de R$ 10,00 na compra do kit para aumentar o ticket médio."
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 
