@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCartStore } from '../store/useCartStore';
 import { useProductStore } from '../store/useProductStore';
 import { formatPrice } from '../lib/utils';
@@ -26,6 +26,15 @@ export function ProductDetails() {
   );
   
   const [selectedImage, setSelectedImage] = useState(product?.images?.[0] || product?.imageUrl);
+  
+  useEffect(() => {
+    if (product) {
+      setSelectedImage(product.images?.[0] || product.imageUrl);
+      setSelectedOption(product.options ? product.options[0] : undefined);
+      setSelectedColor(product.colors ? product.colors[0] : undefined);
+      setSelectedSize(product.sizes ? product.sizes[0] : undefined);
+    }
+  }, [product]);
   
   if (!product) {
     return (
