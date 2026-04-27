@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { MOCK_PRODUCTS } from '../data/mock';
 import { ProductCard } from '../components/product/ProductCard';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
@@ -14,11 +13,6 @@ export function Home() {
   const currentBanner = activeBanners[currentBannerIndex];
   
   useEffect(() => {
-    window.scrollTo(0, 0);
-    setFilter(null);
-  }, [setFilter]);
-
-  useEffect(() => {
     if (activeBanners.length > 1) {
       const interval = setInterval(() => {
         setCurrentBannerIndex((prev) => (prev === activeBanners.length - 1 ? 0 : prev + 1));
@@ -27,8 +21,8 @@ export function Home() {
     }
   }, [activeBanners.length]);
   
-  // Combine registered products with mock products and filter
-  const allProducts = [...registeredProducts, ...MOCK_PRODUCTS].filter(p => p.isActive !== false);
+  // Filter registered products
+  const allProducts = registeredProducts.filter(p => p.isActive !== false);
   
   const displayProducts = allProducts.filter(p => {
     if (!activeFilter) return true;

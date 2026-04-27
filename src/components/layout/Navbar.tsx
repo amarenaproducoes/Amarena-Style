@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCartStore } from '../../store/useCartStore';
 import { useProductStore } from '../../store/useProductStore';
-import { MOCK_PRODUCTS } from '../../data/mock';
 import { cn, formatPrice } from '../../lib/utils';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -13,16 +12,16 @@ interface NavbarProps {
 
 export function Navbar({ onOpenMenu }: NavbarProps) {
   const { getTotals, openCart } = useCartStore();
-  const { logoUrl } = useProductStore();
+  const { logoUrl, setFilter } = useProductStore();
   const { totalItems } = getTotals();
   const location = useLocation();
   
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Combine mocked products + registered products for search
+  // Use registered products for search
   const { products: registeredProducts } = useProductStore();
-  const allProducts = [...registeredProducts, ...MOCK_PRODUCTS];
+  const allProducts = registeredProducts;
   
   const [searchResults, setSearchResults] = useState(allProducts);
 
@@ -69,7 +68,14 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
 
           {/* Center: Logo */}
           <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
-            <Link to="/" className="flex flex-col items-center">
+            <Link 
+              to="/" 
+              className="flex flex-col items-center"
+              onClick={() => {
+                setFilter(null);
+                window.scrollTo(0, 0);
+              }}
+            >
               {logoUrl ? (
                 <img 
                   src={logoUrl} 

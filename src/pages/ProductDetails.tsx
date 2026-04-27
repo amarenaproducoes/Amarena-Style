@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { MOCK_PRODUCTS } from '../data/mock';
 import { useState } from 'react';
 import { useCartStore } from '../store/useCartStore';
 import { useProductStore } from '../store/useProductStore';
@@ -13,7 +12,7 @@ export function ProductDetails() {
   const { addItem, openCart } = useCartStore();
   const { products: registeredProducts, sizeGuides, favorites, toggleFavorite } = useProductStore();
   
-  const allProducts = [...registeredProducts, ...MOCK_PRODUCTS].filter(p => p.isActive !== false);
+  const allProducts = registeredProducts.filter(p => p.isActive !== false);
   const product = allProducts.find(p => p.id === id);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | undefined>(

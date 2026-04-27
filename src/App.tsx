@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/layout/Navbar';
 import { MenuDrawer } from './components/layout/MenuDrawer';
@@ -12,11 +12,24 @@ import { useProductStore } from './store/useProductStore';
 function Layout({ children }: { children: React.ReactNode }) {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { init } = useProductStore();
+  const { init, initialized } = useProductStore();
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   useEffect(() => {
     init();
   }, [init]);
+
+  if (!initialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-8 h-8 rounded-full border-2 border-wine-800 border-t-transparent animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white border-0 md:border-8 border-zinc-100/50">

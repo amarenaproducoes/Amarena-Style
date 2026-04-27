@@ -1,5 +1,4 @@
 import { useProductStore } from '../store/useProductStore';
-import { MOCK_PRODUCTS } from '../data/mock';
 import { ProductCard } from '../components/product/ProductCard';
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
@@ -7,7 +6,7 @@ import { Heart } from 'lucide-react';
 export function Favorites() {
   const { products: registeredProducts, favorites } = useProductStore();
   
-  const allProducts = [...registeredProducts, ...MOCK_PRODUCTS].filter(p => p.isActive !== false);
+  const allProducts = registeredProducts.filter(p => p.isActive !== false);
   const favoriteProducts = allProducts.filter(p => favorites.includes(p.id));
 
   return (
