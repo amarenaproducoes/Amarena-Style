@@ -35,6 +35,7 @@ interface ProductStore {
   initialized: boolean;
   activeFilter: { department?: string, category?: string, isNew?: boolean } | null;
   favorites: string[];
+  pinnedProductIds: string[];
   init: () => Promise<void>;
   setLogoUrl: (url: string) => Promise<void>;
   setDepartments: (depts: Department[]) => Promise<void>;
@@ -45,6 +46,9 @@ interface ProductStore {
   removeProduct: (id: string) => Promise<void>;
   updateSizeGuide: (guide: SizeGuide) => Promise<void>;
   toggleFavorite: (id: string) => void;
+  registerView: (productId: string) => Promise<void>;
+  setPinnedProducts: (ids: string[]) => Promise<void>;
+  getProductViewsInRange: (days: number) => Promise<{ [key: string]: number }>;
 }
 
 export const useProductStore = create<ProductStore>((set, get) => ({
@@ -56,6 +60,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   initialized: false,
   activeFilter: null,
   favorites: [],
+  pinnedProductIds: [],
   
   toggleFavorite: (id: string) => {
     set((state) => {
@@ -72,7 +77,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     if (get().initialized) return;
     
     try {
-      // Fetch settings (logo, departments, banners)
+      // Fetch settings (logo, departments, banners, pinned_products)
       const { data: settingsData } = await supabase
         .from('settings')
         .select('*');
@@ -92,6 +97,13 @@ export const useProductStore = create<ProductStore>((set, get) => ({
         if (banners) {
           try {
             set({ banners: JSON.parse(banners.value) });
+          } catch(e) {}
+        }
+
+        const pinned = settingsData.find(s => s.id === 'pinned_products');
+        if (pinned) {
+          try {
+            set({ pinnedProductIds: JSON.parse(pinned.value) });
           } catch(e) {}
         }
       }
@@ -195,5 +207,57 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     });
     const { error } = await supabase.from('size_guides').upsert([guide]);
     if (error) throw error;
+  },
+
+  registerView: async (productId) => {
+    try {
+      await supabase.from('product_views').insert([{ product_id: productId }]);
+    } catch (error) {
+      console.error('Failed to register view:', error);
+    }
+  },
+
+  setPinnedProducts: async (ids) => {
+    set({ pinnedProductIds: ids });
+    const { error } = await supabase.from('settings').upsert({ id: 'pinned_products', value: JSON.stringify(ids) });
+    if (error) throw error;
+  },
+
+  getProductViewsInRange: async (days) => {
+    try {
+      // If days is 0, fetch current month views
+      // If days is -1, fetch previous month views
+      let query = supabase.from('product_views').select('product_id');
+      
+      const now = new Date();
+      if (days > 0) {
+        const startDate = new Date();
+        startDate.setDate(now.getDate() - days);
+        query = query.gte('created_at', startDate.toISOString());
+      } else if (days === 0) {
+        // Current Month
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        query = query.gte('created_at', startDate.toISOString());
+      } else if (days === -1) {
+        // Previous Month
+        const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        query = query.gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString());
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      const counts: { [key: string]: number } = {};
+      data?.forEach(view => {
+        counts[view.product_id] = (counts[view.product_id] || 0) + 1;
+      });
+      
+      return counts;
+    } catch (error) {
+      console.error('Failed to get product views:', error);
+      return {};
+    }
   }
 }));

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '../store/useCartStore';
 import { useProductStore } from '../store/useProductStore';
 import { formatPrice } from '../lib/utils';
@@ -10,11 +10,20 @@ export function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem, openCart } = useCartStore();
-  const { products: registeredProducts, sizeGuides, favorites, toggleFavorite } = useProductStore();
+  const { products: registeredProducts, sizeGuides, favorites, toggleFavorite, registerView } = useProductStore();
   
   const allProducts = registeredProducts.filter(p => p.isActive !== false);
   const product = allProducts.find(p => p.id === id);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const registered = useRef(false);
+  
+  useEffect(() => {
+    if (id && !registered.current) {
+      registerView(id);
+      registered.current = true;
+    }
+  }, [id, registerView]);
+
   const [selectedOption, setSelectedOption] = useState<string | undefined>(
     product?.options ? product.options[0] : undefined
   );

@@ -7,11 +7,20 @@ import { AnimatePresence, motion } from 'motion/react';
 
 export function Home() {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const { products: registeredProducts, banners, departments, activeFilter, setFilter } = useProductStore();
+  const { products: registeredProducts, banners, departments, activeFilter, setFilter, pinnedProductIds, getProductViewsInRange } = useProductStore();
+  const [viewCounts, setViewCounts] = useState<{ [key: string]: number }>({});
   
   const activeBanners = banners.filter(b => b.active);
   const currentBanner = activeBanners[currentBannerIndex];
   
+  useEffect(() => {
+    const fetchViews = async () => {
+      const counts = await getProductViewsInRange(7);
+      setViewCounts(counts);
+    };
+    fetchViews();
+  }, [getProductViewsInRange]);
+
   useEffect(() => {
     if (activeBanners.length > 1) {
       const interval = setInterval(() => {
@@ -24,13 +33,39 @@ export function Home() {
   // Filter registered products
   const allProducts = registeredProducts.filter(p => p.isActive !== false);
   
-  const displayProducts = allProducts.filter(p => {
-    if (!activeFilter) return true;
-    if (activeFilter.isNew && !p.isNew) return false;
-    if (activeFilter.department && p.department !== activeFilter.department) return false;
-    if (activeFilter.category && p.category !== activeFilter.category) return false;
-    return true;
-  });
+  // Logic for sorting and pinning
+  let displayProducts = [...allProducts];
+
+  if (!activeFilter) {
+    // 1. Get pinned products in order
+    const pinnedProducts = pinnedProductIds
+      .map(id => allProducts.find(p => p.id === id))
+      .filter((p): p is any => !!p);
+
+    // 2. Get other products sorted by views (last 7 days) and name
+    const rankingProducts = allProducts
+      .filter(p => !pinnedProductIds.includes(p.id))
+      .sort((a, b) => {
+        const viewsA = viewCounts[a.id] || 0;
+        const viewsB = viewCounts[b.id] || 0;
+        
+        if (viewsB !== viewsA) {
+          return viewsB - viewsA; // Higher views first
+        }
+        
+        return a.name.localeCompare(b.name); // Alphabetical tie-break
+      });
+
+    displayProducts = [...pinnedProducts, ...rankingProducts];
+  } else {
+    // Apply filters normally
+    displayProducts = allProducts.filter(p => {
+      if (activeFilter.isNew && !p.isNew) return false;
+      if (activeFilter.department && p.department !== activeFilter.department) return false;
+      if (activeFilter.category && p.category !== activeFilter.category) return false;
+      return true;
+    });
+  }
 
   const nextBanner = () => {
     setCurrentBannerIndex((prev) => (prev === activeBanners.length - 1 ? 0 : prev + 1));

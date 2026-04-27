@@ -5,9 +5,52 @@ import { uploadImageToSupabase } from '../lib/storage';
 import { Plus, Trash2, Edit2, X, Upload } from 'lucide-react';
 
 export function Admin() {
-  const { logoUrl, setLogoUrl, products, addProduct, updateProduct, removeProduct, departments, setDepartments, banners, setBanners, sizeGuides, updateSizeGuide } = useProductStore();
+  const { 
+    logoUrl, setLogoUrl, products, addProduct, updateProduct, removeProduct, 
+    departments, setDepartments, banners, setBanners, sizeGuides, updateSizeGuide,
+    pinnedProductIds, setPinnedProducts, getProductViewsInRange
+  } = useProductStore();
   
-  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking'>('products');
+
+  // Ranking data state
+  const [rankingData, setRankingData] = useState<{
+    [key: string]: {
+      views7: number;
+      viewsMonth: number;
+      viewsPrevMonth: number;
+    }
+  }>({});
+  const [isLoadingRanking, setIsLoadingRanking] = useState(false);
+  const [searchProductQuery, setSearchProductQuery] = useState('');
+
+  // Fetch ranking data
+  const fetchRanking = async () => {
+    setIsLoadingRanking(true);
+    try {
+      const v7 = await getProductViewsInRange(7);
+      const vm = await getProductViewsInRange(0);
+      const vp = await getProductViewsInRange(-1);
+
+      const merged: any = {};
+      products.forEach(p => {
+        merged[p.id] = {
+          views7: v7[p.id] || 0,
+          viewsMonth: vm[p.id] || 0,
+          viewsPrevMonth: vp[p.id] || 0
+        };
+      });
+      setRankingData(merged);
+    } finally {
+      setIsLoadingRanking(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'ranking') {
+      fetchRanking();
+    }
+  }, [activeTab, products]);
 
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoError, setLogoError] = useState('');
@@ -335,6 +378,12 @@ export function Admin() {
         >
           Guias de Medidas
         </button>
+        <button 
+          className={`py-2 px-4 md:px-6 font-semibold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'ranking' ? 'border-b-2 border-wine-800 text-wine-800' : 'text-zinc-500'}`}
+          onClick={() => setActiveTab('ranking')}
+        >
+          Ranking e Destaques
+        </button>
       </div>
 
       {activeTab === 'banners' && (
@@ -569,6 +618,175 @@ export function Admin() {
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {activeTab === 'ranking' && (
+        <div className="space-y-12">
+          {/* Pinned Products Section */}
+          <div className="bg-white p-6 border border-zinc-100 shadow-sm">
+            <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-6">Configurar Destaques (Máx 6)</h2>
+            <p className="text-xs text-zinc-500 mb-6">Estes produtos aparecerão sempre no topo da página inicial, na ordem selecionada abaixo.</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Selector */}
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-zinc-400 mb-2 font-bold">Buscar Produto</label>
+                <div className="relative mb-4">
+                  <input 
+                    type="text" 
+                    placeholder="Nome ou código..."
+                    value={searchProductQuery}
+                    onChange={(e) => setSearchProductQuery(e.target.value)}
+                    className="w-full border p-3 text-sm outline-none focus:border-wine-800"
+                  />
+                </div>
+                
+                <div className="space-y-2 max-h-60 overflow-y-auto border border-zinc-100 p-2 bg-white">
+                  {products
+                    .filter(p => p.isActive !== false && !pinnedProductIds.includes(p.id))
+                    .filter(p => 
+                      p.name.toLowerCase().includes(searchProductQuery.toLowerCase()) || 
+                      p.referenceCode?.toLowerCase().includes(searchProductQuery.toLowerCase())
+                    )
+                    .map(p => (
+                      <div 
+                        key={p.id} 
+                        onClick={() => {
+                          if (pinnedProductIds.length < 6) {
+                            setPinnedProducts([...pinnedProductIds, p.id]);
+                          } else {
+                            alert('Máximo de 6 produtos atingido.');
+                          }
+                        }}
+                        className="flex items-center justify-between p-3 hover:bg-zinc-50 text-sm border-b border-zinc-100 last:border-0 cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img src={p.imageUrl} className="w-8 h-10 object-cover border border-zinc-100 shadow-sm" />
+                          <div>
+                            <p className="font-semibold text-zinc-900">{p.name}</p>
+                            <p className="text-[10px] text-zinc-400 font-mono">{p.referenceCode}</p>
+                          </div>
+                        </div>
+                        <div className="bg-wine-800 text-white p-1.5 rounded-sm hover:bg-wine-900 transition-colors">
+                          <Plus size={16} />
+                        </div>
+                      </div>
+                    ))}
+                  {products.filter(p => p.isActive !== false && !pinnedProductIds.includes(p.id)).length === 0 && (
+                    <div className="text-center py-8 text-zinc-400 text-xs italic">
+                      Nenhum produto disponível para destaque.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sorted List */}
+              <div className="bg-zinc-50 p-4 rounded-sm border border-zinc-100">
+                <label className="block text-[10px] uppercase tracking-widest text-zinc-400 mb-4 font-bold">Ordem dos Destaques ({pinnedProductIds.length}/6)</label>
+                <div className="space-y-3">
+                  {pinnedProductIds.map((id, index) => {
+                    const p = products.find(prod => prod.id === id);
+                    if (!p) return null;
+                    return (
+                      <div key={id} className="flex items-center bg-white p-3 border border-zinc-200 shadow-sm gap-4 transition-transform hover:translate-x-1 group">
+                        <div className="bg-wine-800 text-white w-6 h-6 flex items-center justify-center text-xs font-bold font-mono rounded-full flex-shrink-0">
+                          {index + 1}
+                        </div>
+                        <img src={p.imageUrl} className="w-10 h-12 object-cover bg-zinc-50" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{p.name}</p>
+                          <p className="text-[10px] text-zinc-400">{p.department}</p>
+                        </div>
+                        <button 
+                          onClick={() => setPinnedProducts(pinnedProductIds.filter(pid => pid !== id))}
+                          className="text-zinc-400 hover:text-red-600 p-2 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {pinnedProductIds.length === 0 && (
+                    <div className="text-center py-12 border-2 border-dashed border-zinc-200 text-zinc-400 text-sm italic">
+                      Nenhum produto destacado.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Ranking Table Section */}
+          <div className="bg-white p-6 border border-zinc-100 shadow-sm overflow-hidden">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800">Ranking de Visualizações</h2>
+              <button 
+                onClick={fetchRanking}
+                disabled={isLoadingRanking}
+                className="text-[10px] font-bold uppercase tracking-widest border border-zinc-200 px-4 py-2 hover:bg-zinc-50 transition-colors disabled:opacity-50"
+              >
+                {isLoadingRanking ? 'Atualizando...' : 'Atualizar Dados'}
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50 border-y border-zinc-100">
+                    <th className="py-4 px-4 font-bold text-wine-900 uppercase tracking-widest text-[10px]">Produto</th>
+                    <th className="py-4 px-4 font-bold text-wine-900 uppercase tracking-widest text-[10px]">Depto / Seção</th>
+                    <th className="py-4 px-4 font-bold text-wine-900 uppercase tracking-widest text-[10px]">Valor</th>
+                    <th className="py-4 px-4 font-bold text-wine-900 uppercase tracking-widest text-[10px] text-center">Últ. 7 Dias</th>
+                    <th className="py-4 px-4 font-bold text-wine-900 uppercase tracking-widest text-[10px] text-center">Mês Atual</th>
+                    <th className="py-4 px-4 font-bold text-wine-900 uppercase tracking-widest text-[10px] text-center">Mês Anterior</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {products
+                    .map(p => ({
+                      ...p,
+                      stats: rankingData[p.id] || { views7: 0, viewsMonth: 0, viewsPrevMonth: 0 }
+                    }))
+                    .sort((a, b) => b.stats.views7 - a.stats.views7 || a.name.localeCompare(b.name))
+                    .map((p) => (
+                      <tr key={p.id} className="hover:bg-zinc-50 transition-colors group">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            <img src={p.imageUrl} className="w-10 h-12 object-cover border border-zinc-100" />
+                            <div>
+                              <p className="font-semibold text-zinc-900">{p.name}</p>
+                              <p className="text-[10px] text-zinc-400 font-mono">{p.referenceCode}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-xs text-zinc-500 uppercase tracking-wider">
+                          {p.department} › {p.category}
+                        </td>
+                        <td className="py-4 px-4 font-mono font-bold text-zinc-700">
+                          R$ {p.price.toFixed(2)}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <span className={`px-2 py-1 rounded-sm text-xs font-bold font-mono ${p.stats.views7 > 0 ? 'bg-wine-50 text-wine-800' : 'bg-zinc-100 text-zinc-400'}`}>
+                            {p.stats.views7}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="text-xs font-bold font-mono text-zinc-600">
+                            {p.stats.viewsMonth}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="text-xs font-bold font-mono text-zinc-400">
+                            {p.stats.viewsPrevMonth}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
