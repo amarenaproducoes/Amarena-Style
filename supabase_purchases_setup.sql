@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS purchases (
 CREATE TABLE IF NOT EXISTS purchase_items (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   purchase_id uuid REFERENCES purchases(id) ON DELETE CASCADE,
-  product_id uuid, -- Reference to products table if useful
+  product_id TEXT, -- Reference to products table id (TEXT)
   reference_code TEXT,
   product_name TEXT NOT NULL,
   quantity INTEGER NOT NULL,
