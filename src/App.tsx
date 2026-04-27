@@ -59,7 +59,7 @@ export default function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/produto/:id" element={<ProductDetails />} />
+          <Route path="/produto/:code" element={<ProductDetails />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/favoritos" element={<Favorites />} />
         </Routes>

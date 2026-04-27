@@ -39,7 +39,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
           </div>
         )}
 
-        <Link to={`/produto/${product.id}`} className="block w-full h-full z-10">
+        <Link to={`/produto/${product.referenceCode || product.id}`} className="block w-full h-full z-10">
           <img 
             src={product.imageUrl} 
             alt={product.name} 
@@ -59,7 +59,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
       </div>
 
       <div className="flex flex-col flex-1 px-1 text-center">
-        <Link to={`/produto/${product.id}`}>
+        <Link to={`/produto/${product.referenceCode || product.id}`}>
           <h5 className="font-sans text-xs font-semibold mb-1 text-zinc-900 group-hover:text-wine-800 transition-colors line-clamp-1">
             {product.name}
           </h5>
@@ -85,7 +85,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
           )}
         </div>
         <Link 
-          to={`/produto/${product.id}`}
+          to={`/produto/${product.referenceCode || product.id}`}
           className="w-full py-2 mt-auto text-[10px] uppercase tracking-widest border border-wine-800 text-wine-800 font-bold hover:bg-wine-800 hover:text-white transition-colors text-center inline-block"
         >
           Ver Detalhes

@@ -330,7 +330,7 @@ export function Admin() {
         paymentType: productForm.paymentType,
         colors: productForm.colors.split(',').map(s => s.trim()).filter(Boolean),
         sizes: productForm.sizes.split(',').map(s => s.trim()).filter(Boolean),
-        referenceCode: productForm.referenceCode,
+        referenceCode: productForm.referenceCode.trim(),
         sizeGuide: productForm.sizeGuide || undefined,
         originalPrice: productForm.originalPrice ? parseFloat(productForm.originalPrice) : undefined,
         label: productForm.label || undefined,
@@ -339,6 +339,14 @@ export function Admin() {
         imageUrl: allImages[0], // primary
         images: allImages
       };
+
+      // Uniqueness check
+      const duplicate = products.find(p => p.id !== editingId && p.referenceCode?.toLowerCase() === productForm.referenceCode.trim().toLowerCase());
+      if (duplicate) {
+        setProductError(`Este código de referência "${productForm.referenceCode}" já está em uso pelo produto "${duplicate.name}".`);
+        setIsUploadingProduct(false);
+        return;
+      }
 
       if (editingId) {
         await updateProduct(editingId, payload);
@@ -390,7 +398,7 @@ export function Admin() {
         imageUrl,
         title: bannerForm.title,
         subtitle: bannerForm.subtitle,
-        link: bannerForm.productId ? `/produto/${bannerForm.productId}` : bannerForm.link,
+        link: bannerForm.productId ? `/produto/${products.find(p => p.id === bannerForm.productId)?.referenceCode || bannerForm.productId}` : bannerForm.link,
         productId: bannerForm.productId || undefined,
         active: bannerForm.active
       };

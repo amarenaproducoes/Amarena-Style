@@ -7,22 +7,22 @@ import { ChevronRight, Heart, Share2, Ruler, X } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 
 export function ProductDetails() {
-  const { id } = useParams();
+  const { code } = useParams();
   const navigate = useNavigate();
   const { addItem, openCart } = useCartStore();
-  const { products: registeredProducts, sizeGuides, favorites, toggleFavorite, registerView } = useProductStore();
+  const { products: registeredProducts, sizeGuides, favorites, toggleFavorite, registerView, getProductBySlug } = useProductStore();
   
   const allProducts = registeredProducts.filter(p => p.isActive !== false);
-  const product = allProducts.find(p => p.id === id);
+  const product = code ? getProductBySlug(code) : undefined;
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const registeredId = useRef<string | null>(null);
   
   useEffect(() => {
-    if (id && registeredId.current !== id) {
-      registerView(id);
-      registeredId.current = id;
+    if (product && registeredId.current !== product.id) {
+      registerView(product.id);
+      registeredId.current = product.id;
     }
-  }, [id, registerView]);
+  }, [product, registerView]);
 
   const [selectedOption, setSelectedOption] = useState<string | undefined>(
     product?.options ? product.options[0] : undefined

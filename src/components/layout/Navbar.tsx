@@ -176,7 +176,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
                       {searchResults.map((product) => (
                         <li key={product.id}>
                           <Link 
-                            to={`/produto/${product.id}`}
+                            to={`/produto/${product.referenceCode || product.id}`}
                             onClick={() => setIsSearchOpen(false)}
                             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-50 transition-colors"
                           >

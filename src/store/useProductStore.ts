@@ -51,6 +51,7 @@ interface ProductStore {
   getProductViewsInRange: (days: number) => Promise<{ [key: string]: number }>;
   validateCoupon: (code: string) => Promise<{ success: boolean, message?: string, coupon?: any }>;
   redeemCoupon: (coupon: any) => Promise<void>;
+  getProductBySlug: (slug: string) => Product | undefined;
 }
 
 export const useProductStore = create<ProductStore>((set, get) => ({
@@ -223,6 +224,11 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to register view:', error);
     }
+  },
+
+  getProductBySlug: (slug: string) => {
+    const products = get().products;
+    return products.find(p => p.referenceCode === slug || p.id === slug);
   },
 
   setPinnedProducts: async (ids) => {
