@@ -150,7 +150,9 @@ export function Admin() {
     isActive: true
   });
   const [productImagesFiles, setProductImagesFiles] = useState<File[]>([]);
+  const [productImagesPreviews, setProductImagesPreviews] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [isUploadingProduct, setIsUploadingProduct] = useState(false);
   const [productError, setProductError] = useState('');
   
@@ -235,19 +237,38 @@ export function Admin() {
       const files = Array.from(e.target.files);
       const totalImages = existingImages.length + productImagesFiles.length + files.length;
       if (totalImages > 8) {
-        setProductError('Máximo de 8 imagens por produto allowed.');
+        setProductError('Máximo de 8 imagens por produto.');
         return;
       }
+      
+      const newPreviews = files.map(file => URL.createObjectURL(file));
       setProductImagesFiles(prev => [...prev, ...files]);
+      setProductImagesPreviews(prev => [...prev, ...newPreviews]);
+      
+      if (!coverImageUrl) {
+        setCoverImageUrl(newPreviews[0]);
+      }
     }
   };
 
   const removeSelectedFile = (index: number) => {
+    const previewToRemove = productImagesPreviews[index];
     setProductImagesFiles(prev => prev.filter((_, i) => i !== index));
+    setProductImagesPreviews(prev => prev.filter((_, i) => i !== index));
+    if (coverImageUrl === previewToRemove) {
+      const remainingExisting = existingImages.length > 0 ? existingImages[0] : null;
+      const remainingNew = productImagesPreviews.length > 1 ? (index === 0 ? productImagesPreviews[1] : productImagesPreviews[0]) : null;
+      setCoverImageUrl(remainingExisting || remainingNew);
+    }
   };
 
   const removeExistingImage = (url: string) => {
     setExistingImages(prev => prev.filter(img => img !== url));
+    if (coverImageUrl === url) {
+      const remainingExisting = existingImages.length > 1 ? existingImages.find(img => img !== url) || null : null;
+      const remainingNew = productImagesPreviews.length > 0 ? productImagesPreviews[0] : null;
+      setCoverImageUrl(remainingExisting || remainingNew);
+    }
   };
 
   const startEditProduct = (p: Product) => {
@@ -270,7 +291,9 @@ export function Admin() {
       isActive: p.isActive !== false
     });
     setExistingImages(p.images || [p.imageUrl]);
+    setCoverImageUrl(p.imageUrl);
     setProductImagesFiles([]);
+    setProductImagesPreviews([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -295,6 +318,8 @@ export function Admin() {
     });
     setExistingImages([]);
     setProductImagesFiles([]);
+    setProductImagesPreviews([]);
+    setCoverImageUrl(null);
     setProductError('');
   };
 
@@ -320,6 +345,20 @@ export function Admin() {
       
       const allImages = [...existingImages, ...uploadedUrls];
       
+      // Determine cover image URL
+      let finalImageUrl = allImages[0];
+      if (coverImageUrl) {
+        const existingIdx = existingImages.indexOf(coverImageUrl);
+        if (existingIdx !== -1) {
+          finalImageUrl = existingImages[existingIdx];
+        } else {
+          const newIdx = productImagesPreviews.indexOf(coverImageUrl);
+          if (newIdx !== -1 && uploadedUrls[newIdx]) {
+            finalImageUrl = uploadedUrls[newIdx];
+          }
+        }
+      }
+      
       const payload: Partial<Product> = {
         name: productForm.name,
         description: productForm.description,
@@ -336,7 +375,7 @@ export function Admin() {
         label: productForm.label || undefined,
         isNew: productForm.isNew,
         isActive: productForm.isActive,
-        imageUrl: allImages[0], // primary
+        imageUrl: finalImageUrl, 
         images: allImages
       };
 
@@ -382,7 +421,7 @@ export function Admin() {
         imageUrl = await uploadImageToSupabase(BUCKET_NAME, path, bannerImageFile);
       } else if (bannerForm.productId) {
         const product = products.find(p => p.id === bannerForm.productId);
-        imageUrl = product?.images?.[0] || product?.imageUrl || '';
+        imageUrl = product?.imageUrl || product?.images?.[0] || '';
       } else if (editingBannerId) {
         imageUrl = banners.find(b => b.id === editingBannerId)?.imageUrl || '';
       }
@@ -1135,14 +1174,14 @@ export function Admin() {
                   
                   <div className="grid grid-cols-4 gap-2 mb-2">
                     {existingImages.map((img, i) => (
-                      <div key={`existing-${i}`} className="relative aspect-[3/4] border border-zinc-200 bg-zinc-50 overflow-hidden">
-                        <img src={img} className="w-full h-full object-cover" />
-                        {i === 0 && (
+                      <div key={`existing-${i}`} className="relative aspect-[3/4] border border-zinc-200 bg-zinc-50 overflow-hidden cursor-pointer" onClick={() => setCoverImageUrl(img)}>
+                        <img src={img} className={`w-full h-full object-cover ${coverImageUrl === img ? 'opacity-100' : 'opacity-60'}`} />
+                        {coverImageUrl === img && (
                           <div className="absolute top-0 left-0 bg-wine-800 text-white text-[8px] px-1 py-0.5 font-bold uppercase z-10">Capa</div>
                         )}
                         <button 
                           type="button" 
-                          onClick={() => removeExistingImage(img)} 
+                          onClick={(e) => { e.stopPropagation(); removeExistingImage(img); }} 
                           className="absolute top-1 right-1 bg-white/90 rounded-full p-1 text-red-500 shadow-sm hover:bg-red-500 hover:text-white transition-colors z-20"
                           title="Remover imagem"
                         >
@@ -1150,15 +1189,15 @@ export function Admin() {
                         </button>
                       </div>
                     ))}
-                    {productImagesFiles.map((file, i) => (
-                      <div key={`new-${i}`} className="relative aspect-[3/4] border border-zinc-200 bg-zinc-50 overflow-hidden">
-                        <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
-                        {existingImages.length === 0 && i === 0 && (
+                    {productImagesPreviews.map((preview, i) => (
+                      <div key={`new-${i}`} className="relative aspect-[3/4] border border-zinc-200 bg-zinc-50 overflow-hidden cursor-pointer" onClick={() => setCoverImageUrl(preview)}>
+                        <img src={preview} className={`w-full h-full object-cover ${coverImageUrl === preview ? 'opacity-100' : 'opacity-60'}`} />
+                        {coverImageUrl === preview && (
                           <div className="absolute top-0 left-0 bg-wine-800 text-white text-[8px] px-1 py-0.5 font-bold uppercase z-10">Capa</div>
                         )}
                         <button 
                           type="button" 
-                          onClick={() => removeSelectedFile(i)} 
+                          onClick={(e) => { e.stopPropagation(); removeSelectedFile(i); }} 
                           className="absolute top-1 right-1 bg-white/90 rounded-full p-1 text-red-500 shadow-sm hover:bg-red-500 hover:text-white transition-colors z-20"
                           title="Remover imagem"
                         >
@@ -1174,7 +1213,7 @@ export function Admin() {
                       </label>
                     )}
                   </div>
-                  <p className="text-[10px] text-zinc-400 italic">A primeira imagem será usada como capa nas listagens.</p>
+                  <p className="text-[10px] text-zinc-400 italic">Clique em uma imagem para defini-la como capa.</p>
                 </div>
 
               {productError && <p className="text-red-500 text-xs">{productError}</p>}

@@ -36,11 +36,11 @@ export function ProductDetails() {
     product?.sizes ? product.sizes[0] : undefined
   );
   
-  const [selectedImage, setSelectedImage] = useState(product?.images?.[0] || product?.imageUrl);
+  const [selectedImage, setSelectedImage] = useState(product?.imageUrl || product?.images?.[0]);
   
   useEffect(() => {
     if (product) {
-      setSelectedImage(product.images?.[0] || product.imageUrl);
+      setSelectedImage(product.imageUrl || product.images?.[0]);
       setSelectedOption(product.options ? product.options[0] : undefined);
       setSelectedColor(product.colors ? product.colors[0] : undefined);
       setSelectedSize(product.sizes ? product.sizes[0] : undefined);
