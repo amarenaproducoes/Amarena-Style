@@ -188,8 +188,20 @@ export function ProductDetails() {
                 <p>{product.description}</p>
               </div>
 
-              <div className="text-2xl font-sans font-medium text-wine-900">
-                {formatPrice(product.price)}
+              <div className="flex items-center gap-4 mb-2">
+                <div className="text-2xl font-sans font-medium text-wine-900">
+                  {formatPrice(product.price)}
+                </div>
+                {product.originalPrice && product.originalPrice > product.price && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-zinc-400 text-lg line-through font-serif font-light">
+                      {formatPrice(product.originalPrice)}
+                    </span>
+                    <span className="text-red-600 text-xs font-bold bg-red-50 px-2 py-1 rounded-sm">
+                      -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                    </span>
+                  </div>
+                )}
               </div>
               <p className="text-sm font-sans text-zinc-500 mt-2 mb-2">
                 {renderPaymentInfo()}

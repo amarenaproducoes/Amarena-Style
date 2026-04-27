@@ -21,7 +21,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
-      className="group cursor-pointer flex flex-col"
+      className="group cursor-pointer flex flex-col h-full"
     >
       <div className="relative aspect-[3/4] overflow-hidden bg-zinc-50 mb-3 flex items-center justify-center">
         {index !== undefined && (
@@ -29,6 +29,16 @@ export function ProductCard({ product, index }: ProductCardProps) {
             {index.toString().padStart(2, '0')}
           </div>
         )}
+        
+        {/* Label/Etiqueta */}
+        {product.label && (
+          <div className="absolute top-0 left-0 z-20 overflow-hidden w-24 h-24 pointer-events-none">
+            <div className="bg-wine-800 text-white text-[10px] font-bold uppercase tracking-tighter w-[160%] h-7 -rotate-45 -translate-x-[32%] translate-y-[18%] shadow-lg shadow-black/20 border-b border-white/10 flex items-center justify-center">
+              <span className="whitespace-nowrap w-full text-center block leading-none">{product.label}</span>
+            </div>
+          </div>
+        )}
+
         <Link to={`/produto/${product.id}`} className="block w-full h-full z-10">
           <img 
             src={product.imageUrl} 
@@ -54,12 +64,29 @@ export function ProductCard({ product, index }: ProductCardProps) {
             {product.name}
           </h5>
         </Link>
-        <p className="text-wine-800 text-sm font-serif italic mb-3">
-          {formatPrice(product.price)}
-        </p>
+        <div className="flex items-center justify-center gap-1.5 mb-3">
+          {product.originalPrice && product.originalPrice > product.price && (
+            <>
+              <span className="text-zinc-400 text-[10px] line-through font-serif font-light">
+                {formatPrice(product.originalPrice)}
+              </span>
+              <p className="text-wine-800 text-sm font-serif italic">
+                {formatPrice(product.price)}
+              </p>
+              <span className="text-red-600 text-[10px] font-bold ml-0.5">
+                -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+              </span>
+            </>
+          )}
+          {(!product.originalPrice || product.originalPrice <= product.price) && (
+            <p className="text-wine-800 text-sm font-serif italic">
+              {formatPrice(product.price)}
+            </p>
+          )}
+        </div>
         <Link 
           to={`/produto/${product.id}`}
-          className="w-full py-2 text-[10px] uppercase tracking-widest border border-wine-800 text-wine-800 font-bold hover:bg-wine-800 hover:text-white transition-colors text-center inline-block"
+          className="w-full py-2 mt-auto text-[10px] uppercase tracking-widest border border-wine-800 text-wine-800 font-bold hover:bg-wine-800 hover:text-white transition-colors text-center inline-block"
         >
           Ver Detalhes
         </Link>

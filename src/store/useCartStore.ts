@@ -6,6 +6,10 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  originalPrice?: number;
+  isOnSale?: boolean;
+  label?: string;
+  hasLabel?: boolean;
   imageUrl: string; // Keep as main image for backwards compatibility
   images?: string[]; // Up to 8 images
   department?: string; // e.g. Acessórios

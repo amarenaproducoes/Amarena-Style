@@ -111,7 +111,12 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       }
 
       if (productsRes.data) {
-        set({ products: productsRes.data as Product[] });
+        const mappedProducts = (productsRes.data as any[]).map(p => ({
+          ...p,
+          originalPrice: p.original_price, // Mapeia snake_case para camelCase
+          label: p.label // Usa a coluna 'label' diretamente
+        }));
+        set({ products: mappedProducts as Product[] });
       }
 
       if (sizeGuidesRes.data) {
@@ -147,17 +152,23 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   },
 
   updateProduct: async (id, updates) => {
+    // Mapeia camelCase para snake_case do banco de dados
+    const dbUpdates: any = { ...updates };
+    if ('originalPrice' in dbUpdates) {
+      dbUpdates.original_price = dbUpdates.originalPrice;
+      delete dbUpdates.originalPrice;
+    }
+    // Não alteramos 'label' pois agora usamos este nome no banco também
+
     set((state) => ({
       products: state.products.map(p => p.id === id ? { ...p, ...updates } : p)
     }));
-    const { error } = await supabase.from('products').update(updates).eq('id', id);
+    const { error } = await supabase.from('products').update(dbUpdates).eq('id', id);
     if (error) throw error;
   },
 
   addProduct: async (product) => {
-    set((state) => ({ products: [...state.products, product] }));
-    
-    // Convert undefined to null or include all. Ensure we send valid object to supabase.
+    // Prepara o registro para o Supabase
     const productRecord = {
       id: product.id,
       name: product.name,
@@ -175,9 +186,12 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       referenceCode: product.referenceCode || null,
       sizeGuide: product.sizeGuide || null,
       isNew: product.isNew || false,
-      isActive: product.isActive !== false
+      isActive: product.isActive !== false,
+      original_price: product.originalPrice || null,
+      label: product.label || null
     };
 
+    set((state) => ({ products: [...state.products, product] }));
     const { error } = await supabase.from('products').upsert([productRecord]);
     if (error) throw error;
   },

@@ -69,6 +69,8 @@ export function Admin() {
     sizes: '',   // Comma separated
     referenceCode: '',
     sizeGuide: '' as '' | 'male' | 'female',
+    originalPrice: '',
+    label: '',
     isNew: false,
     isActive: true
   });
@@ -187,6 +189,8 @@ export function Admin() {
       sizes: p.sizes?.join(', ') || '',
       referenceCode: p.referenceCode || '',
       sizeGuide: p.sizeGuide as ('' | 'male' | 'female') || '',
+      originalPrice: p.originalPrice?.toString() || '',
+      label: p.label || '',
       isNew: p.isNew || false,
       isActive: p.isActive !== false
     });
@@ -209,6 +213,8 @@ export function Admin() {
       sizes: '',
       referenceCode: '',
       sizeGuide: '',
+      originalPrice: '',
+      label: '',
       isNew: false,
       isActive: true
     });
@@ -251,6 +257,8 @@ export function Admin() {
         sizes: productForm.sizes.split(',').map(s => s.trim()).filter(Boolean),
         referenceCode: productForm.referenceCode,
         sizeGuide: productForm.sizeGuide || undefined,
+        originalPrice: productForm.originalPrice ? parseFloat(productForm.originalPrice) : undefined,
+        label: productForm.label || undefined,
         isNew: productForm.isNew,
         isActive: productForm.isActive,
         imageUrl: allImages[0], // primary
@@ -830,8 +838,19 @@ export function Admin() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Preço (R$)</label>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Preço Atual (R$)</label>
                   <input required type="number" step="0.01" min="0" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} className="w-full border p-2 text-sm outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Preço Antigo (Opcional)</label>
+                  <input type="number" step="0.01" min="0" value={productForm.originalPrice} onChange={e => setProductForm({...productForm, originalPrice: e.target.value})} placeholder="Para De/Por" className="w-full border p-2 text-sm outline-none" />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Etiqueta (Opcional)</label>
+                  <input type="text" value={productForm.label} onChange={e => setProductForm({...productForm, label: e.target.value})} placeholder="Ex: 25% OFF" className="w-full border p-2 text-sm outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Pagamento</label>
