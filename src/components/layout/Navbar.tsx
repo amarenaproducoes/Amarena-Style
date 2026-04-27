@@ -54,7 +54,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
       <header className="sticky top-0 z-40 w-full bg-white border-b border-zinc-100">
         <div className="flex h-20 items-center justify-between px-4 md:px-8 max-w-7xl mx-auto relative">
           {/* Left: Menu Handle */}
-          <div className="flex items-center gap-2 md:gap-4 w-1/3">
+          <div className="flex items-center gap-2 md:gap-4 flex-1 md:flex-none md:w-1/3">
             <button 
               onClick={onOpenMenu}
               className="p-2 -ml-2 text-wine-800 transition-colors"
@@ -68,7 +68,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
           </div>
 
           {/* Center: Logo */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center">
+          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
             <Link to="/" className="flex flex-col items-center">
               {logoUrl ? (
                 <img 
@@ -78,10 +78,10 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
                 />
               ) : (
                 <>
-                  <span className="font-serif text-2xl md:text-3xl tracking-tight text-wine-800 font-normal leading-none">
+                  <span className="font-serif text-xl sm:text-2xl md:text-3xl tracking-tight text-wine-800 font-normal leading-none whitespace-nowrap">
                     Amarena Style
                   </span>
-                  <span className="text-[8px] md:text-[9px] tracking-[0.3em] uppercase mt-1 text-zinc-600">
+                  <span className="text-[7px] sm:text-[8px] md:text-[9px] tracking-[0.3em] uppercase mt-1 text-zinc-600 hidden sm:block">
                     Leveza & Movimento
                   </span>
                 </>
@@ -90,7 +90,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
           </div>
 
           {/* Right: Search & Cart */}
-          <div className="flex items-center justify-end w-1/3 gap-4 md:gap-6">
+          <div className="flex items-center justify-end flex-1 md:flex-none md:w-1/3 gap-0.5 md:gap-6 z-20">
             <div className="relative hidden md:flex items-center border-b border-zinc-300 pb-1">
               <input
                 type="text"
@@ -107,18 +107,18 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
             
             <button 
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2 text-wine-800 transition-colors md:hidden"
+              className="p-1.5 md:p-2 text-wine-800 transition-colors md:hidden"
             >
               <Search className="w-5 h-5 stroke-[1.5]" />
             </button>
             
             <button 
               onClick={openCart}
-              className="relative p-2 -mr-2 text-wine-800 transition-colors"
+              className="relative p-1.5 md:p-2 -mr-1 md:-mr-2 text-wine-800 transition-colors"
               aria-label="Abrir carrinho"
             >
               <ShoppingBag className="w-5 h-5 md:w-[22px] md:h-[22px] stroke-[1.5]" />
-              <span className="absolute top-0 right-0 bg-wine-800 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+              <span className="absolute top-0 right-0 md:top-0 md:right-0 bg-wine-800 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold translate-x-1.5 -translate-y-1.5 md:translate-x-0 md:translate-y-0">
                 {totalItems}
               </span>
             </button>

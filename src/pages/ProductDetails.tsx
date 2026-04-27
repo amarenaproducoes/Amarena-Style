@@ -11,7 +11,7 @@ export function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem, openCart } = useCartStore();
-  const { products: registeredProducts, sizeGuides } = useProductStore();
+  const { products: registeredProducts, sizeGuides, favorites, toggleFavorite } = useProductStore();
   
   const allProducts = [...registeredProducts, ...MOCK_PRODUCTS].filter(p => p.isActive !== false);
   const product = allProducts.find(p => p.id === id);
@@ -76,6 +76,24 @@ export function ProductDetails() {
     return `Pagamento ${product.paymentType || 'À vista'}`;
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: product.name,
+      text: 'Olha que demais esse produto que vi no Site do Amarena Style!',
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      const waLink = `https://wa.me/?text=${encodeURIComponent(shareData.text + ' ' + shareData.url)}`;
+      window.open(waLink, '_blank');
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {/* Breadcrumb */}
@@ -112,10 +130,18 @@ export function ProductDetails() {
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-2 bg-white rounded-full text-zinc-600 hover:text-wine-800 shadow-sm">
-                  <Heart className="w-5 h-5" />
+                <button 
+                  onClick={() => product && toggleFavorite(product.id)}
+                  className={`p-2 rounded-full shadow-sm transition-colors ${
+                    product && favorites.includes(product.id) 
+                      ? 'bg-wine-50 text-wine-800' 
+                      : 'bg-white text-zinc-600 hover:text-wine-800'
+                  }`}
+                  aria-label="Adicionar aos favoritos"
+                >
+                  <Heart className={`w-5 h-5 ${product && favorites.includes(product.id) ? 'fill-current' : ''}`} />
                 </button>
-                <button className="p-2 bg-white rounded-full text-zinc-600 hover:text-wine-800 shadow-sm">
+                <button onClick={handleShare} className="p-2 bg-white rounded-full text-zinc-600 hover:text-wine-800 shadow-sm">
                   <Share2 className="w-5 h-5" />
                 </button>
               </div>

@@ -34,6 +34,7 @@ interface ProductStore {
   sizeGuides: SizeGuide[];
   initialized: boolean;
   activeFilter: { department?: string, category?: string, isNew?: boolean } | null;
+  favorites: string[];
   init: () => Promise<void>;
   setLogoUrl: (url: string) => Promise<void>;
   setDepartments: (depts: Department[]) => Promise<void>;
@@ -43,6 +44,7 @@ interface ProductStore {
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   removeProduct: (id: string) => Promise<void>;
   updateSizeGuide: (guide: SizeGuide) => Promise<void>;
+  toggleFavorite: (id: string) => void;
 }
 
 export const useProductStore = create<ProductStore>((set, get) => ({
@@ -53,7 +55,19 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   sizeGuides: [],
   initialized: false,
   activeFilter: null,
+  favorites: [],
   
+  toggleFavorite: (id: string) => {
+    set((state) => {
+      const isFavorite = state.favorites.includes(id);
+      return {
+        favorites: isFavorite 
+          ? state.favorites.filter(favId => favId !== id)
+          : [...state.favorites, id]
+      };
+    });
+  },
+
   init: async () => {
     if (get().initialized) return;
     

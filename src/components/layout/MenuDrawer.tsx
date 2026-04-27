@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronRight, ChevronDown, Sparkles } from 'lucide-react';
+import { X, ChevronRight, ChevronDown, Sparkles, Heart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useProductStore } from '../../store/useProductStore';
@@ -72,6 +72,15 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
                   <Sparkles className="w-4 h-4" />
                   Novidades
                 </button>
+
+                <Link
+                  to="/favoritos"
+                  onClick={onClose}
+                  className="px-6 md:px-8 py-4 text-sm font-sans tracking-widest uppercase text-wine-800 hover:bg-zinc-50 transition-colors flex items-center gap-3"
+                >
+                  <Heart className="w-4 h-4" />
+                  Favoritos
+                </Link>
 
                 <Link 
                   to="/" 

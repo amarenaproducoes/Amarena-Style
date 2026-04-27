@@ -6,6 +6,7 @@ import { CartDrawer } from './components/layout/CartDrawer';
 import { Home } from './pages/Home';
 import { ProductDetails } from './pages/ProductDetails';
 import { Admin } from './pages/Admin';
+import { Favorites } from './pages/Favorites';
 import { useProductStore } from './store/useProductStore';
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/produto/:id" element={<ProductDetails />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/favoritos" element={<Favorites />} />
         </Routes>
       </Layout>
     </Router>

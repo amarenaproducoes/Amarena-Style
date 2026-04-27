@@ -2,8 +2,9 @@ import { Link } from 'react-router-dom';
 import { Product } from '../../store/useCartStore';
 import { formatPrice } from '../../lib/utils';
 import { Heart } from 'lucide-react';
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
+import { useProductStore } from '../../store/useProductStore';
 
 interface ProductCardProps {
   product: Product;
@@ -12,7 +13,8 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, index }: ProductCardProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { favorites, toggleFavorite } = useProductStore();
+  const isFavorite = favorites.includes(product.id);
 
   return (
     <motion.div 
@@ -38,7 +40,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
         <button 
           onClick={(e) => {
             e.preventDefault();
-            setIsFavorite(!isFavorite);
+            toggleFavorite(product.id);
           }}
           className={`absolute top-3 right-3 p-2 z-20 rounded-full backdrop-blur-md transition-all ${isFavorite ? 'bg-wine-50 text-wine-800' : 'bg-white/50 text-zinc-600 hover:bg-white hover:text-wine-800'}`}
         >

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MOCK_PRODUCTS } from '../data/mock';
 import { ProductCard } from '../components/product/ProductCard';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
 import { Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 
 export function Home() {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
@@ -11,6 +12,20 @@ export function Home() {
   
   const activeBanners = banners.filter(b => b.active);
   const currentBanner = activeBanners[currentBannerIndex];
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    setFilter(null);
+  }, [setFilter]);
+
+  useEffect(() => {
+    if (activeBanners.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentBannerIndex((prev) => (prev === activeBanners.length - 1 ? 0 : prev + 1));
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [activeBanners.length]);
   
   // Combine registered products with mock products and filter
   const allProducts = [...registeredProducts, ...MOCK_PRODUCTS].filter(p => p.isActive !== false);
@@ -35,58 +50,88 @@ export function Home() {
     <div className="flex flex-col min-h-screen px-4 md:px-8 max-w-7xl mx-auto w-full">
       {/* Dynamic Hero Banner (Geometric design fallback if no banners) */}
       {!activeFilter && (
-        <section className="relative h-[400px] md:h-[500px] w-full bg-zinc-100 flex items-center overflow-hidden rounded-sm mt-4 md:mt-8 mb-12 border border-zinc-200">
+        <section className="group relative h-[400px] md:h-[500px] w-full bg-zinc-100 overflow-hidden rounded-sm mt-4 md:mt-8 mb-12 border border-zinc-200">
           
-          {currentBanner ? (
-            <>
-              <img 
-                src={currentBanner.imageUrl} 
-                alt={currentBanner.title}
-                className="absolute inset-0 w-full h-full object-cover md:w-[70%] md:left-auto md:right-0"
-              />
-              {/* Gradient Overlay for Text Legibility */}
-              <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-zinc-50/80 via-zinc-50/40 to-transparent w-full md:w-[60%]"></div>
-              <div className="z-10 px-8 md:pl-16 max-w-lg">
-                <h3 className="text-[11px] uppercase tracking-[0.4em] mb-4 text-wine-800 font-semibold">Destaque</h3>
-                <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl leading-tight mb-6 text-zinc-900 drop-shadow-sm">
-                  {currentBanner.title}
-                </h2>
-                <p className="text-sm text-zinc-600 mb-8 max-w-sm font-medium">{currentBanner.subtitle}</p>
-                {currentBanner.link && (
-                  <Link to={currentBanner.link} className="inline-block bg-wine-800 text-white px-8 md:px-10 py-3 text-[10px] md:text-xs tracking-widest uppercase font-semibold hover:bg-wine-700 transition-all shadow-md">
-                    Conheça
-                  </Link>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="z-10 px-8 md:pl-16 max-w-lg">
-                <h3 className="text-[11px] uppercase tracking-[0.4em] mb-4 text-wine-800 font-semibold">Nova Coleção</h3>
-                <h2 className="font-serif text-4xl md:text-6xl leading-tight mb-6 text-zinc-900">
-                  Essência de <br/>
-                  <i className="font-normal text-wine-800">Amarena</i>
-                </h2>
-                <button className="bg-wine-800 text-white px-8 md:px-10 py-3 text-[10px] md:text-xs tracking-widest uppercase font-semibold hover:bg-wine-700 transition-all">
-                  Conheça
-                </button>
-              </div>
-              <div className="hidden md:block ml-auto h-full w-[45%] bg-[#EAE7E4] relative">
-                <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at center, #4B2C3B 0.5px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-              </div>
-            </>
-          )}
+          <AnimatePresence initial={false} mode="wait">
+            {currentBanner ? (
+              <motion.div
+                key={currentBannerIndex}
+                initial={{ opacity: 0, x: 100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+                className="absolute inset-0"
+              >
+                <img 
+                  src={currentBanner.imageUrl} 
+                  alt={currentBanner.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute bottom-4 md:bottom-8 left-4 right-4 md:left-8 w-auto md:w-max max-w-sm z-10">
+                  <div className="bg-white/20 backdrop-blur-md p-3 md:p-4 shadow-sm rounded-sm border border-white/20 text-center md:text-left">
+                    <h2 className="font-serif text-base md:text-lg lg:text-xl leading-tight text-zinc-900 mb-2 drop-shadow-sm">
+                      {currentBanner.title}
+                    </h2>
+                    <div>
+                      {currentBanner.link && (
+                        <Link to={currentBanner.link} className="inline-block bg-wine-800 text-white px-5 py-2 text-[10px] tracking-widest uppercase font-bold hover:bg-wine-700 transition-all shadow-sm">
+                          Conheça
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="fallback"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex items-center"
+              >
+                <div className="absolute bottom-4 md:bottom-8 left-4 right-4 md:left-8 w-auto md:w-max max-w-sm z-10">
+                  <div className="bg-white/20 backdrop-blur-md p-3 md:p-4 shadow-sm rounded-sm border border-white/20 text-center md:text-left">
+                    <h2 className="font-serif text-base md:text-lg lg:text-xl leading-tight text-zinc-900 mb-2 drop-shadow-sm">
+                      Essência de <br className="hidden md:block" />
+                      <i className="font-normal text-wine-800">Amarena</i>
+                    </h2>
+                    <div>
+                      <button className="bg-wine-800 text-white px-5 py-2 text-[10px] tracking-widest uppercase font-bold hover:bg-wine-700 transition-all shadow-sm">
+                        Conheça
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute inset-0 w-full h-full bg-[#EAE7E4] z-0">
+                  <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at center, #4B2C3B 0.5px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {activeBanners.length > 1 && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-20">
-              {activeBanners.map((_, idx) => (
-                <button 
-                  key={idx}
-                  onClick={() => setCurrentBannerIndex(idx)}
-                  className={`w-10 h-[2px] transition-colors ${idx === currentBannerIndex ? 'bg-wine-800' : 'bg-zinc-300'}`}
-                ></button>
-              ))}
-            </div>
+            <>
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 flex gap-3 z-20 bg-black/10 px-3 py-2 rounded-full backdrop-blur-sm">
+                {activeBanners.map((_, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setCurrentBannerIndex(idx)}
+                    className={`w-10 h-[3px] rounded-full transition-colors ${idx === currentBannerIndex ? 'bg-white' : 'bg-white/40'}`}
+                  ></button>
+                ))}
+              </div>
+              
+              {/* Navigation arrows */}
+              <div className="absolute inset-y-0 left-4 right-4 flex justify-between items-center z-20 opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                <button onClick={(e) => { e.preventDefault(); prevBanner(); }} className="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center text-zinc-800 hover:bg-white shadow pointer-events-auto transition-colors">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button onClick={(e) => { e.preventDefault(); nextBanner(); }} className="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center text-zinc-800 hover:bg-white shadow pointer-events-auto transition-colors">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </>
           )}
         </section>
       )}
