@@ -693,17 +693,42 @@ export function Admin() {
                         <div className="bg-wine-800 text-white w-6 h-6 flex items-center justify-center text-xs font-bold font-mono rounded-full flex-shrink-0">
                           {index + 1}
                         </div>
-                        <img src={p.imageUrl} className="w-10 h-12 object-cover bg-zinc-50" />
+                        <img src={p.imageUrl} className="w-10 h-10 object-cover bg-zinc-50 border border-zinc-100" />
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm truncate">{p.name}</p>
                           <p className="text-[10px] text-zinc-400">{p.department}</p>
                         </div>
-                        <button 
-                          onClick={() => setPinnedProducts(pinnedProductIds.filter(pid => pid !== id))}
-                          className="text-zinc-400 hover:text-red-600 p-2 transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        
+                        <div className="flex items-center gap-1">
+                          <button 
+                            disabled={index === 0}
+                            onClick={() => {
+                              const newList = [...pinnedProductIds];
+                              [newList[index - 1], newList[index]] = [newList[index], newList[index - 1]];
+                              setPinnedProducts(newList);
+                            }}
+                            className="p-1 text-zinc-400 hover:text-wine-800 disabled:opacity-20"
+                          >
+                            <svg className="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 9l-7 7-7-7" /></svg>
+                          </button>
+                          <button 
+                            disabled={index === pinnedProductIds.length - 1}
+                            onClick={() => {
+                              const newList = [...pinnedProductIds];
+                              [newList[index + 1], newList[index]] = [newList[index], newList[index + 1]];
+                              setPinnedProducts(newList);
+                            }}
+                            className="p-1 text-zinc-400 hover:text-wine-800 disabled:opacity-20"
+                          >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 9l-7 7-7-7" /></svg>
+                          </button>
+                          <button 
+                            onClick={() => setPinnedProducts(pinnedProductIds.filter(pid => pid !== id))}
+                            className="ml-2 text-zinc-400 hover:text-red-600 p-1 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}

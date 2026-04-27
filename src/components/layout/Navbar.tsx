@@ -53,7 +53,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
       <header className="sticky top-0 z-40 w-full bg-white border-b border-zinc-100">
         <div className="flex h-20 items-center justify-between px-4 md:px-8 max-w-7xl mx-auto relative">
           {/* Left: Menu Handle */}
-          <div className="flex items-center gap-2 md:gap-4 flex-1 md:flex-none md:w-1/3">
+          <div className="flex items-center gap-2 md:gap-4 flex-1 md:flex-none md:w-1/3 z-10">
             <button 
               onClick={onOpenMenu}
               className="p-2 -ml-2 text-wine-800 transition-colors"
@@ -67,10 +67,10 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
           </div>
 
           {/* Center: Logo */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
+          <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center z-30 w-full max-w-[70%] md:max-w-[45%]">
             <Link 
               to="/" 
-              className="flex flex-col items-center"
+              className="flex flex-col items-center w-full"
               onClick={() => {
                 setFilter(null);
                 window.scrollTo(0, 0);
@@ -80,14 +80,14 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
                 <img 
                   src={logoUrl} 
                   alt="Amarena Style" 
-                  className="h-10 md:h-12 object-contain mix-blend-multiply" 
+                  className="h-[65px] md:h-[75px] w-auto object-contain mix-blend-multiply transition-all duration-300" 
                 />
               ) : (
                 <>
-                  <span className="font-serif text-xl sm:text-2xl md:text-3xl tracking-tight text-wine-800 font-normal leading-none whitespace-nowrap">
+                  <span className="font-serif text-2xl sm:text-3xl md:text-4xl tracking-tight text-wine-800 font-normal leading-none whitespace-nowrap">
                     Amarena Style
                   </span>
-                  <span className="text-[7px] sm:text-[8px] md:text-[9px] tracking-[0.3em] uppercase mt-1 text-zinc-600 hidden sm:block">
+                  <span className="text-[8px] sm:text-[9px] md:text-[10px] tracking-[0.3em] uppercase mt-1 text-zinc-600 hidden sm:block">
                     Leveza & Movimento
                   </span>
                 </>
@@ -96,7 +96,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
           </div>
 
           {/* Right: Search & Cart */}
-          <div className="flex items-center justify-end flex-1 md:flex-none md:w-1/3 gap-0.5 md:gap-6 z-20">
+          <div className="flex items-center justify-end flex-1 md:flex-none md:w-1/3 gap-0.5 md:gap-6 z-10">
             <div className="relative hidden md:flex items-center border-b border-zinc-300 pb-1">
               <input
                 type="text"
@@ -147,7 +147,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="fixed top-16 left-0 w-full bg-white z-30 border-b border-zinc-100 shadow-sm"
+              className="fixed top-20 left-0 w-full bg-white z-30 border-b border-zinc-100 shadow-sm"
             >
               <div className="max-w-3xl mx-auto px-4 py-4 relative">
                 <div className="relative">

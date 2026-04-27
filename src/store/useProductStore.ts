@@ -77,30 +77,32 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     if (get().initialized) return;
     
     try {
-      // Fetch settings (logo, departments, banners, pinned_products)
-      const { data: settingsData } = await supabase
-        .from('settings')
-        .select('*');
+      // Parallelize fetches for better performance
+      const [settingsRes, productsRes, sizeGuidesRes] = await Promise.all([
+        supabase.from('settings').select('*'),
+        supabase.from('products').select('*'),
+        supabase.from('size_guides').select('*')
+      ]);
         
-      if (settingsData) {
-        const logo = settingsData.find(s => s.id === 'logo_url');
+      if (settingsRes.data) {
+        const logo = settingsRes.data.find(s => s.id === 'logo_url');
         if (logo) set({ logoUrl: logo.value });
 
-        const depts = settingsData.find(s => s.id === 'departments');
+        const depts = settingsRes.data.find(s => s.id === 'departments');
         if (depts) {
           try {
             set({ departments: JSON.parse(depts.value) });
           } catch(e) {}
         }
 
-        const banners = settingsData.find(s => s.id === 'banners');
+        const banners = settingsRes.data.find(s => s.id === 'banners');
         if (banners) {
           try {
             set({ banners: JSON.parse(banners.value) });
           } catch(e) {}
         }
 
-        const pinned = settingsData.find(s => s.id === 'pinned_products');
+        const pinned = settingsRes.data.find(s => s.id === 'pinned_products');
         if (pinned) {
           try {
             set({ pinnedProductIds: JSON.parse(pinned.value) });
@@ -108,22 +110,12 @@ export const useProductStore = create<ProductStore>((set, get) => ({
         }
       }
 
-      // Fetch products
-      const { data: productsData } = await supabase
-        .from('products')
-        .select('*');
-        
-      if (productsData) {
-        set({ products: productsData as Product[] });
+      if (productsRes.data) {
+        set({ products: productsRes.data as Product[] });
       }
 
-      // Fetch size_guides
-      const { data: sizeGuidesData } = await supabase
-        .from('size_guides')
-        .select('*');
-
-      if (sizeGuidesData) {
-        set({ sizeGuides: sizeGuidesData as SizeGuide[] });
+      if (sizeGuidesRes.data) {
+        set({ sizeGuides: sizeGuidesRes.data as SizeGuide[] });
       }
     } catch (error) {
       console.error('Failed to init from Supabase:', error);

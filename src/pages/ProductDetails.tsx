@@ -15,12 +15,12 @@ export function ProductDetails() {
   const allProducts = registeredProducts.filter(p => p.isActive !== false);
   const product = allProducts.find(p => p.id === id);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-  const registered = useRef(false);
+  const registeredId = useRef<string | null>(null);
   
   useEffect(() => {
-    if (id && !registered.current) {
+    if (id && registeredId.current !== id) {
       registerView(id);
-      registered.current = true;
+      registeredId.current = id;
     }
   }, [id, registerView]);
 
