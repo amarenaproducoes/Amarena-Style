@@ -4,15 +4,17 @@ import { useCartStore } from '../../store/useCartStore';
 import { useProductStore } from '../../store/useProductStore';
 import { formatPrice, formatWhatsAppMessage } from '../../lib/utils';
 import { useState } from 'react';
+import { supabase } from '../../lib/supabase';
 
 export function CartDrawer() {
   const { isCartOpen, closeCart, items, updateQuantity, removeItem, getTotals, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCartStore();
-  const { totalPrice, discountAmount, finalPrice } = getTotals();
+  const { totalItems, totalPrice, discountAmount, finalPrice } = getTotals();
   const { validateCoupon, redeemCoupon } = useProductStore();
 
   const [couponInput, setCouponInput] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
@@ -33,21 +35,59 @@ export function CartDrawer() {
   };
 
   const handleCheckout = async () => {
-    if (items.length === 0) return;
+    if (items.length === 0 || isProcessing) return;
     
-    if (appliedCoupon) {
-      await redeemCoupon(appliedCoupon);
-    }
+    setIsProcessing(true);
+    try {
+      // 1. Cadastrar a compra no Supabase
+      const { data: purchase, error: pError } = await supabase
+        .from('purchases')
+        .insert({ 
+          total_value: finalPrice,
+        })
+        .select()
+        .single();
 
-    const url = formatWhatsAppMessage(
-      items, 
-      finalPrice, 
-      appliedCoupon ? { code: appliedCoupon.code, discount: discountAmount } : null
-    );
-    
-    window.open(url, '_blank');
-    clearCart();
-    closeCart();
+      if (pError) throw pError;
+
+      // 2. Cadastrar os itens da compra
+      const itemsToInsert = items.map(item => ({
+        purchase_id: purchase.id,
+        product_id: item.id,
+        reference_code: item.referenceCode || null,
+        product_name: item.name,
+        quantity: item.quantity,
+        unit_price: item.price,
+        total_price: item.price * item.quantity
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('purchase_items')
+        .insert(itemsToInsert);
+
+      if (itemsError) throw itemsError;
+
+      // 3. Resgatar cupom se houver
+      if (appliedCoupon) {
+        await redeemCoupon(appliedCoupon);
+      }
+
+      // 4. Abrir WhatsApp
+      const url = formatWhatsAppMessage(
+        items, 
+        finalPrice, 
+        appliedCoupon ? { code: appliedCoupon.code, discount: discountAmount } : null
+      );
+      
+      window.open(url, '_blank');
+      clearCart();
+      closeCart();
+    } catch (error) {
+      console.error('Erro ao processar compra:', error);
+      alert('Houve um erro ao processar sua compra. Por favor, tente novamente.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -219,9 +259,10 @@ export function CartDrawer() {
                 <div className="space-y-3">
                   <button 
                     onClick={handleCheckout}
-                    className="w-full bg-wine-800 text-white py-4 text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold hover:bg-wine-900 transition-colors"
+                    disabled={isProcessing}
+                    className="w-full bg-wine-800 text-white py-4 text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold hover:bg-wine-900 transition-colors disabled:opacity-50"
                   >
-                    Finalizar via WhatsApp
+                    {isProcessing ? 'Processando...' : 'Finalizar via WhatsApp'}
                   </button>
                 </div>
               </div>

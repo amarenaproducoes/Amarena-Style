@@ -12,7 +12,76 @@ export function Admin() {
     pinnedProductIds, setPinnedProducts, getProductViewsInRange
   } = useProductStore();
   
-  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales'>('products');
+
+  // Sales Data State
+  const [salesData, setSalesData] = useState<{
+    [key: string]: {
+      sold7: number;
+      soldMonth: number;
+      soldPrevMonth: number;
+    }
+  }>({});
+  const [isLoadingSales, setIsLoadingSales] = useState(false);
+
+  const fetchSalesData = async () => {
+    setIsLoadingSales(true);
+    try {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(now.getDate() - 7);
+      
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const firstDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+      const fetchRange = async (start: Date, end: Date | null = null) => {
+        let query = supabase
+          .from('purchase_items')
+          .select('product_id, quantity')
+          .gte('created_at', start.toISOString());
+        
+        if (end) {
+          query = query.lte('created_at', end.toISOString());
+        }
+
+        const { data } = await query;
+        const counts: Record<string, number> = {};
+        data?.forEach(item => {
+          if (item.product_id) {
+            counts[item.product_id] = (counts[item.product_id] || 0) + item.quantity;
+          }
+        });
+        return counts;
+      };
+
+      const [s7, sm, sp] = await Promise.all([
+        fetchRange(sevenDaysAgo),
+        fetchRange(firstDayOfMonth),
+        fetchRange(firstDayOfPrevMonth, lastDayOfPrevMonth)
+      ]);
+
+      const merged: any = {};
+      products.forEach(p => {
+        merged[p.id] = {
+          sold7: s7[p.id] || 0,
+          soldMonth: sm[p.id] || 0,
+          soldPrevMonth: sp[p.id] || 0
+        };
+      });
+      setSalesData(merged);
+    } catch (err) {
+      console.error('Error fetching sales data:', err);
+    } finally {
+      setIsLoadingSales(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'sales') {
+      fetchSalesData();
+    }
+  }, [activeTab, products]);
 
   // Coupons State
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -520,6 +589,12 @@ export function Admin() {
         >
           Cupons
         </button>
+        <button 
+          className={`py-2 px-4 md:px-6 font-semibold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'sales' ? 'border-b-2 border-wine-800 text-wine-800' : 'text-zinc-500'}`}
+          onClick={() => setActiveTab('sales')}
+        >
+          Vendas
+        </button>
       </div>
 
       {activeTab === 'coupons' && (
@@ -864,6 +939,91 @@ export function Admin() {
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {activeTab === 'sales' && (
+        <div className="space-y-8">
+          <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800">Controle de Vendas por Produto</h2>
+                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-tight">Quantidade vendida por período</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={fetchSalesData}
+                  disabled={isLoadingSales}
+                  className="p-2 border border-zinc-200 text-zinc-500 hover:text-wine-800 transition-colors disabled:opacity-50"
+                  title="Atualizar dados"
+                >
+                  <svg className={`w-4 h-4 ${isLoadingSales ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="Buscar produto..." 
+                    value={searchProductQuery}
+                    onChange={(e) => setSearchProductQuery(e.target.value)}
+                    className="pl-3 pr-10 py-2 border border-zinc-200 text-xs uppercase tracking-widest focus:outline-none focus:border-wine-800 w-full md:w-64"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50 border-b border-zinc-100">
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Produto</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500">REF</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">Últimos 7 dias</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">Mês Atual</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">Mês Anterior</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {products
+                    .filter(p => p.name.toLowerCase().includes(searchProductQuery.toLowerCase()) || p.referenceCode?.toLowerCase().includes(searchProductQuery.toLowerCase()))
+                    .map(p => (
+                      <tr key={p.id} className="hover:bg-zinc-50/50 transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <img src={p.imageUrl} className="w-10 h-12 object-cover border border-zinc-100" />
+                            <span className="font-semibold text-zinc-900 text-sm">{p.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 font-mono text-xs text-zinc-400">
+                          {p.referenceCode}
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`px-2 py-1 rounded-sm text-xs font-bold font-mono ${salesData[p.id]?.sold7 > 0 ? 'bg-green-50 text-green-700' : 'bg-zinc-100 text-zinc-400'}`}>
+                            {salesData[p.id]?.sold7 || 0}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`px-2 py-1 rounded-sm text-xs font-bold font-mono ${salesData[p.id]?.soldMonth > 0 ? 'bg-green-50 text-green-700' : 'bg-zinc-100 text-zinc-400'}`}>
+                            {salesData[p.id]?.soldMonth || 0}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`px-2 py-1 rounded-sm text-xs font-bold font-mono ${salesData[p.id]?.soldPrevMonth > 0 ? 'bg-zinc-100 text-zinc-600' : 'bg-zinc-50 text-zinc-300'}`}>
+                            {salesData[p.id]?.soldPrevMonth || 0}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  {products.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-zinc-400 italic">Nenhum produto encontrado.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
