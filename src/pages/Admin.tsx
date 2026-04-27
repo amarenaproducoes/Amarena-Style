@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useProductStore, Department } from '../store/useProductStore';
+import { formatPrice } from '../lib/utils';
 import { Product } from '../store/useCartStore';
 import { uploadImageToSupabase } from '../lib/storage';
 import { supabase } from '../lib/supabase';
@@ -94,6 +95,9 @@ export function Admin() {
       sold7: number;
       soldMonth: number;
       soldPrevMonth: number;
+      rev7: number;
+      revMonth: number;
+      revPrevMonth: number;
     }
   }>({});
   const [isLoadingSales, setIsLoadingSales] = useState(false);
@@ -112,7 +116,7 @@ export function Admin() {
       const fetchRange = async (start: Date, end: Date | null = null) => {
         let query = supabase
           .from('purchase_items')
-          .select('product_id, quantity')
+          .select('product_id, quantity, total_price')
           .gte('created_at', start.toISOString());
         
         if (end) {
@@ -120,13 +124,15 @@ export function Admin() {
         }
 
         const { data } = await query;
-        const counts: Record<string, number> = {};
+        const stats: Record<string, { qty: number, val: number }> = {};
         data?.forEach(item => {
           if (item.product_id) {
-            counts[item.product_id] = (counts[item.product_id] || 0) + item.quantity;
+            if (!stats[item.product_id]) stats[item.product_id] = { qty: 0, val: 0 };
+            stats[item.product_id].qty += item.quantity;
+            stats[item.product_id].val += Number(item.total_price || 0);
           }
         });
-        return counts;
+        return stats;
       };
 
       const [s7, sm, sp] = await Promise.all([
@@ -138,9 +144,12 @@ export function Admin() {
       const merged: any = {};
       products.forEach(p => {
         merged[p.id] = {
-          sold7: s7[p.id] || 0,
-          soldMonth: sm[p.id] || 0,
-          soldPrevMonth: sp[p.id] || 0
+          sold7: s7[p.id]?.qty || 0,
+          soldMonth: sm[p.id]?.qty || 0,
+          soldPrevMonth: sp[p.id]?.qty || 0,
+          rev7: s7[p.id]?.val || 0,
+          revMonth: sm[p.id]?.val || 0,
+          revPrevMonth: sp[p.id]?.val || 0
         };
       });
       setSalesData(merged);
@@ -241,6 +250,28 @@ export function Admin() {
   }>({});
   const [isLoadingRanking, setIsLoadingRanking] = useState(false);
   const [searchProductQuery, setSearchProductQuery] = useState('');
+
+  const filteredAndTotals = React.useMemo(() => {
+    const filtered = products.filter(p => 
+      p.name.toLowerCase().includes(searchProductQuery.toLowerCase()) || 
+      p.referenceCode?.toLowerCase().includes(searchProductQuery.toLowerCase()) ||
+      (p.department || '').toLowerCase().includes(searchProductQuery.toLowerCase())
+    );
+
+    const totals = filtered.reduce((acc, p) => {
+      const pData = salesData[p.id];
+      return {
+        sold7: acc.sold7 + (pData?.sold7 || 0),
+        soldMonth: acc.soldMonth + (pData?.soldMonth || 0),
+        soldPrevMonth: acc.soldPrevMonth + (pData?.soldPrevMonth || 0),
+        rev7: acc.rev7 + (pData?.rev7 || 0),
+        revMonth: acc.revMonth + (pData?.revMonth || 0),
+        revPrevMonth: acc.revPrevMonth + (pData?.revPrevMonth || 0),
+      };
+    }, { sold7: 0, soldMonth: 0, soldPrevMonth: 0, rev7: 0, revMonth: 0, revPrevMonth: 0 });
+
+    return { filtered, totals };
+  }, [products, searchProductQuery, salesData]);
 
   // Fetch ranking data
   const fetchRanking = async () => {
@@ -1190,15 +1221,24 @@ export function Admin() {
                 <thead>
                   <tr className="bg-zinc-50 border-b border-zinc-100">
                     <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Produto</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Depto</th>
                     <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500">REF</th>
-                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">Últimos 7 dias</th>
-                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">Mês Atual</th>
-                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">Mês Anterior</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">
+                      <div className="mb-1">Últimos 7 dias</div>
+                      <div className="text-zinc-600 font-mono text-[11px] bg-white rounded-sm px-1 inline-block border border-zinc-100">Total: {filteredAndTotals.totals.sold7}</div>
+                    </th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">
+                      <div className="mb-1">Mês Atual</div>
+                      <div className="text-zinc-600 font-mono text-[11px] bg-white rounded-sm px-1 inline-block border border-zinc-100">Total: {filteredAndTotals.totals.soldMonth}</div>
+                    </th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">
+                      <div className="mb-1">Mês Anterior</div>
+                      <div className="text-zinc-600 font-mono text-[11px] bg-white rounded-sm px-1 inline-block border border-zinc-100">Total: {filteredAndTotals.totals.soldPrevMonth}</div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
-                  {products
-                    .filter(p => p.name.toLowerCase().includes(searchProductQuery.toLowerCase()) || p.referenceCode?.toLowerCase().includes(searchProductQuery.toLowerCase()))
+                  {filteredAndTotals.filtered
                     .map(p => (
                       <tr key={p.id} className="hover:bg-zinc-50/50 transition-colors">
                         <td className="py-4 px-6">
@@ -1206,6 +1246,9 @@ export function Admin() {
                             <img src={p.imageUrl} className="w-10 h-12 object-cover border border-zinc-100" />
                             <span className="font-semibold text-zinc-900 text-sm">{p.name}</span>
                           </div>
+                        </td>
+                        <td className="py-4 px-6 text-[10px] uppercase tracking-widest text-zinc-400">
+                          {p.department}
                         </td>
                         <td className="py-4 px-6 font-mono text-xs text-zinc-400">
                           {p.referenceCode}
@@ -1227,9 +1270,79 @@ export function Admin() {
                         </td>
                       </tr>
                     ))}
-                  {products.length === 0 && (
+                  {filteredAndTotals.filtered.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-zinc-400 italic">Nenhum produto encontrado.</td>
+                      <td colSpan={6} className="py-12 text-center text-zinc-400 italic">Nenhum produto encontrado.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-zinc-100">
+              <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800">Controle de Faturamento por Produto</h2>
+              <p className="text-xs text-zinc-400 mt-1 uppercase tracking-tight">Valor total vendido por período</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50 border-b border-zinc-100">
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Produto</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Depto</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500">REF</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">
+                      <div className="mb-1">Últimos 7 dias</div>
+                      <div className="text-zinc-600 font-mono text-[11px] bg-white rounded-sm px-1 inline-block border border-zinc-100">Total: {formatPrice(filteredAndTotals.totals.rev7)}</div>
+                    </th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">
+                      <div className="mb-1">Mês Atual</div>
+                      <div className="text-zinc-600 font-mono text-[11px] bg-white rounded-sm px-1 inline-block border border-zinc-100">Total: {formatPrice(filteredAndTotals.totals.revMonth)}</div>
+                    </th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">
+                      <div className="mb-1">Mês Anterior</div>
+                      <div className="text-zinc-600 font-mono text-[11px] bg-white rounded-sm px-1 inline-block border border-zinc-100">Total: {formatPrice(filteredAndTotals.totals.revPrevMonth)}</div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {filteredAndTotals.filtered
+                    .map(p => (
+                      <tr key={p.id} className="hover:bg-zinc-50/50 transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <img src={p.imageUrl} className="w-10 h-12 object-cover border border-zinc-100" />
+                            <span className="font-semibold text-zinc-900 text-sm">{p.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-[10px] uppercase tracking-widest text-zinc-400">
+                          {p.department}
+                        </td>
+                        <td className="py-4 px-6 font-mono text-xs text-zinc-400">
+                          {p.referenceCode}
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`px-2 py-1 rounded-sm text-xs font-bold font-mono ${salesData[p.id]?.rev7 > 0 ? 'bg-green-50 text-green-700' : 'bg-zinc-100 text-zinc-400'}`}>
+                            {formatPrice(salesData[p.id]?.rev7 || 0)}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`px-2 py-1 rounded-sm text-xs font-bold font-mono ${salesData[p.id]?.revMonth > 0 ? 'bg-green-50 text-green-700' : 'bg-zinc-100 text-zinc-400'}`}>
+                            {formatPrice(salesData[p.id]?.revMonth || 0)}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`px-2 py-1 rounded-sm text-xs font-bold font-mono ${salesData[p.id]?.revPrevMonth > 0 ? 'bg-zinc-100 text-zinc-600' : 'bg-zinc-50 text-zinc-300'}`}>
+                            {formatPrice(salesData[p.id]?.revPrevMonth || 0)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  {filteredAndTotals.filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-zinc-400 italic">Nenhum produto encontrado.</td>
                     </tr>
                   )}
                 </tbody>
