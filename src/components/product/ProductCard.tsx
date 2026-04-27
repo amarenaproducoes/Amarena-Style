@@ -32,9 +32,9 @@ export function ProductCard({ product, index }: ProductCardProps) {
         
         {/* Label/Etiqueta */}
         {product.label && (
-          <div className="absolute top-0 left-0 z-20 overflow-hidden w-24 h-24 pointer-events-none">
-            <div className="bg-wine-800 text-white text-[10px] font-bold uppercase tracking-tighter w-[160%] h-7 -rotate-45 -translate-x-[32%] translate-y-[18%] shadow-lg shadow-black/20 border-b border-white/10 flex items-center justify-center">
-              <span className="whitespace-nowrap w-full text-center block leading-none">{product.label}</span>
+          <div className="absolute top-0 left-0 z-20 overflow-hidden w-32 h-32 pointer-events-none">
+            <div className="absolute top-8 left-[-45px] w-48 -rotate-45 bg-wine-800 text-white text-[9px] font-bold uppercase tracking-widest py-1.5 shadow-xl border-b border-white/20 flex items-center justify-center">
+              <span className="whitespace-nowrap px-4">{product.label}</span>
             </div>
           </div>
         )}
