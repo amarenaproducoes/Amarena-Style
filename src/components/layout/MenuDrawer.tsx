@@ -3,6 +3,7 @@ import { X, ChevronRight, ChevronDown, Sparkles, Heart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useProductStore } from '../../store/useProductStore';
+import { slugify } from '../../utils/slugify';
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -17,7 +18,6 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
   const handleNovidades = () => {
     setFilter({ isNew: true });
     onClose();
-    navigate('/');
   };
 
   const handleDeptClick = (deptName: string) => {
@@ -28,10 +28,9 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
     }
   };
 
-  const handleApplyFilter = (dept?: string, cat?: string) => {
-    setFilter({ department: dept, category: cat });
+  const handleGoHome = () => {
+    setFilter(null);
     onClose();
-    navigate('/');
   };
 
   return (
@@ -65,13 +64,14 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
             
             <div className="flex-1 overflow-y-auto py-4 bg-white">
               <nav className="flex flex-col">
-                <button 
+                <Link 
+                  to="/"
                   onClick={handleNovidades}
                   className="px-6 md:px-8 py-4 text-sm font-sans tracking-widest uppercase text-wine-800 hover:bg-zinc-50 transition-colors flex items-center gap-3"
                 >
                   <Sparkles className="w-4 h-4" />
                   Novidades
-                </button>
+                </Link>
 
                 <Link
                   to="/favoritos"
@@ -84,7 +84,7 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
 
                 <Link 
                   to="/" 
-                  onClick={() => { setFilter(null); onClose(); }}
+                  onClick={handleGoHome}
                   className="px-6 md:px-8 py-4 text-sm font-sans tracking-widest uppercase text-zinc-900 hover:bg-zinc-50 transition-colors flex items-center justify-between"
                 >
                   Página Inicial
@@ -113,20 +113,22 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
                           exit={{ height: 0, opacity: 0 }}
                           className="bg-zinc-50 overflow-hidden"
                         >
-                          <button
-                            onClick={() => handleApplyFilter(dept.name)}
-                            className="w-full text-left px-12 md:px-14 py-3 text-xs uppercase tracking-widest text-wine-800 font-bold hover:bg-zinc-100"
+                          <Link
+                            to={`/${slugify(dept.name)}`}
+                            onClick={onClose}
+                            className="block w-full text-left px-12 md:px-14 py-3 text-xs uppercase tracking-widest text-wine-800 font-bold hover:bg-zinc-100"
                           >
                             Ver Tudo em {dept.name}
-                          </button>
+                          </Link>
                           {dept.categories.map(cat => (
-                            <button
+                            <Link
                               key={cat}
-                              onClick={() => handleApplyFilter(dept.name, cat)}
-                              className="w-full text-left px-12 md:px-14 py-3 text-xs tracking-widest text-zinc-500 hover:text-wine-800 hover:bg-zinc-100"
+                              to={`/${slugify(cat)}`}
+                              onClick={onClose}
+                              className="block w-full text-left px-12 md:px-14 py-3 text-xs tracking-widest text-zinc-500 hover:text-wine-800 hover:bg-zinc-100"
                             >
                               {cat}
-                            </button>
+                            </Link>
                           ))}
                         </motion.div>
                       )}

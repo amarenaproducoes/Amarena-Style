@@ -2,16 +2,46 @@ import { useState, useEffect } from 'react';
 import { ProductCard } from '../components/product/ProductCard';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
+import { slugify } from '../utils/slugify';
 
 export function Home() {
+  const { slug } = useParams();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const { products: registeredProducts, banners, departments, activeFilter, setFilter, pinnedProductIds, getProductViewsInRange } = useProductStore();
   const [viewCounts, setViewCounts] = useState<{ [key: string]: number }>({});
   
   const activeBanners = banners.filter(b => b.active);
   const currentBanner = activeBanners[currentBannerIndex];
+  
+  // URL Slug logic
+  useEffect(() => {
+    if (slug) {
+      if (departments.length > 0) {
+        const foundDept = departments.find(d => slugify(d.name) === slug);
+        if (foundDept) {
+          if (activeFilter?.department !== foundDept.name) {
+            setFilter({ department: foundDept.name });
+          }
+        } else {
+          // Check categories
+          const allCategories = departments.flatMap(d => d.categories || []);
+          const foundCat = allCategories.find(c => slugify(c) === slug);
+          if (foundCat) {
+            if (activeFilter?.category !== foundCat) {
+              setFilter({ category: foundCat });
+            }
+          }
+        }
+      }
+    } else {
+      // If we are at root and the filter was set by a department/category slug, clear it.
+      if (activeFilter?.department || activeFilter?.category) {
+        setFilter(null);
+      }
+    }
+  }, [slug, departments, activeFilter, setFilter]);
   
   useEffect(() => {
     const fetchViews = async () => {
@@ -183,9 +213,12 @@ export function Home() {
               Limpar Filtro
             </button>
           ) : (
-            <a href="#" className="hidden md:inline-block text-[10px] uppercase tracking-widest border-b border-wine-800 pb-1 text-wine-800 font-bold hover:opacity-80 transition-opacity">
+            <button 
+              onClick={() => setFilter(null)} 
+              className="hidden md:inline-block text-[10px] uppercase tracking-widest border-b border-wine-800 pb-1 text-wine-800 font-bold hover:opacity-80 transition-opacity"
+            >
               Ver todos os produtos
-            </a>
+            </button>
           )}
         </div>
         
@@ -205,9 +238,12 @@ export function Home() {
         </div>
         
         <div className="mt-8 text-center md:hidden">
-          <a href="#" className="inline-block text-[10px] uppercase tracking-widest border-b border-wine-800 pb-1 text-wine-800 font-bold hover:opacity-80 transition-opacity">
+          <button 
+            onClick={() => setFilter(null)}
+            className="inline-block text-[10px] uppercase tracking-widest border-b border-wine-800 pb-1 text-wine-800 font-bold hover:opacity-80 transition-opacity"
+          >
             Ver todos os produtos
-          </a>
+          </button>
         </div>
       </section>
       
@@ -218,16 +254,13 @@ export function Home() {
           {departments && departments.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {departments.map((dept) => (
-                <div 
+                <Link 
                   key={dept.name} 
-                  onClick={() => {
-                    setFilter({ department: dept.name });
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  to={`/${slugify(dept.name)}`}
                   className="bg-white p-6 md:p-8 hover:shadow-md transition-shadow cursor-pointer border border-wine-100 flex items-center justify-center min-h-[120px]"
                 >
                   <span className="font-sans text-sm font-medium text-wine-800 tracking-wider uppercase">{dept.name}</span>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

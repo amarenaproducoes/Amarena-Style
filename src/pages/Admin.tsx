@@ -1127,34 +1127,55 @@ export function Admin() {
                   </label>
                 </div>
 
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1 flex justify-between">
-                  <span>Imagens (Máx 8)</span>
-                  <span className="font-normal">{existingImages.length + productImagesFiles.length}/8</span>
-                </label>
-                
-                <div className="grid grid-cols-4 gap-2 mb-2">
-                  {existingImages.map((img, i) => (
-                    <div key={i} className="relative group aspect-[3/4] border border-zinc-200 bg-zinc-50">
-                      <img src={img} className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => removeExistingImage(img)} className="absolute top-1 right-1 bg-white rounded-full p-0.5 text-red-500 shadow hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button>
-                    </div>
-                  ))}
-                  {productImagesFiles.map((file, i) => (
-                    <div key={i} className="relative group aspect-[3/4] border border-zinc-200 bg-zinc-50">
-                      <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => removeSelectedFile(i)} className="absolute top-1 right-1 bg-white rounded-full p-0.5 text-red-500 shadow hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button>
-                    </div>
-                  ))}
-                  {(existingImages.length + productImagesFiles.length) < 8 && (
-                    <label className="aspect-[3/4] border border-dashed border-zinc-300 flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-50 text-zinc-400 hover:text-wine-800 transition-colors">
-                      <Upload size={20} />
-                      <span className="text-[10px] mt-1 font-semibold uppercase">Adicionar</span>
-                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
-                    </label>
-                  )}
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1 flex justify-between">
+                    <span>Imagens (Máx 8)</span>
+                    <span className="font-normal text-wine-800 font-bold">{existingImages.length + productImagesFiles.length}/8</span>
+                  </label>
+                  
+                  <div className="grid grid-cols-4 gap-2 mb-2">
+                    {existingImages.map((img, i) => (
+                      <div key={`existing-${i}`} className="relative aspect-[3/4] border border-zinc-200 bg-zinc-50 overflow-hidden">
+                        <img src={img} className="w-full h-full object-cover" />
+                        {i === 0 && (
+                          <div className="absolute top-0 left-0 bg-wine-800 text-white text-[8px] px-1 py-0.5 font-bold uppercase z-10">Capa</div>
+                        )}
+                        <button 
+                          type="button" 
+                          onClick={() => removeExistingImage(img)} 
+                          className="absolute top-1 right-1 bg-white/90 rounded-full p-1 text-red-500 shadow-sm hover:bg-red-500 hover:text-white transition-colors z-20"
+                          title="Remover imagem"
+                        >
+                          <X size={12}/>
+                        </button>
+                      </div>
+                    ))}
+                    {productImagesFiles.map((file, i) => (
+                      <div key={`new-${i}`} className="relative aspect-[3/4] border border-zinc-200 bg-zinc-50 overflow-hidden">
+                        <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
+                        {existingImages.length === 0 && i === 0 && (
+                          <div className="absolute top-0 left-0 bg-wine-800 text-white text-[8px] px-1 py-0.5 font-bold uppercase z-10">Capa</div>
+                        )}
+                        <button 
+                          type="button" 
+                          onClick={() => removeSelectedFile(i)} 
+                          className="absolute top-1 right-1 bg-white/90 rounded-full p-1 text-red-500 shadow-sm hover:bg-red-500 hover:text-white transition-colors z-20"
+                          title="Remover imagem"
+                        >
+                          <X size={12}/>
+                        </button>
+                      </div>
+                    ))}
+                    {(existingImages.length + productImagesFiles.length) < 8 && (
+                      <label className="aspect-[3/4] border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-50 hover:border-wine-200 text-zinc-400 hover:text-wine-800 transition-all">
+                        <Upload size={18} />
+                        <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Incluir</span>
+                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-zinc-400 italic">A primeira imagem será usada como capa nas listagens.</p>
                 </div>
-              </div>
 
               {productError && <p className="text-red-500 text-xs">{productError}</p>}
 

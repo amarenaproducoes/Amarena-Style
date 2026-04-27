@@ -1,10 +1,12 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from 'react';
 import { useCartStore } from '../store/useCartStore';
 import { useProductStore } from '../store/useProductStore';
 import { formatPrice } from '../lib/utils';
 import { ChevronRight, Heart, Share2, Ruler, X } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
+
+import { slugify } from '../utils/slugify';
 
 export function ProductDetails() {
   const { code } = useParams();
@@ -116,21 +118,29 @@ export function ProductDetails() {
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
         <nav className="flex items-center space-x-2 text-xs font-sans text-zinc-500">
-          <button onClick={() => { useProductStore.getState().setFilter(null); navigate('/'); }} className="hover:text-wine-800 transition-colors">Home</button>
-          <ChevronRight className="w-3 h-3" />
-          <span 
-            onClick={() => { useProductStore.getState().setFilter({ department: product.department }); navigate('/'); }}
-            className="hover:text-wine-800 transition-colors cursor-pointer"
-          >
-            {product.department || 'Produtos'}
-          </span>
-          <ChevronRight className="w-3 h-3" />
-          <span 
-            onClick={() => { useProductStore.getState().setFilter({ department: product.department, category: product.category }); navigate('/'); }}
-            className="hover:text-wine-800 transition-colors cursor-pointer"
-          >
-            {product.category}
-          </span>
+          <Link to="/" className="hover:text-wine-800 transition-colors">Home</Link>
+          {product.department && (
+            <>
+              <ChevronRight className="w-3 h-3" />
+              <Link 
+                to={`/${slugify(product.department)}`}
+                className="hover:text-wine-800 transition-colors cursor-pointer"
+              >
+                {product.department}
+              </Link>
+            </>
+          )}
+          {product.category && (
+            <>
+              <ChevronRight className="w-3 h-3" />
+              <Link 
+                to={`/${slugify(product.category)}`}
+                className="hover:text-wine-800 transition-colors cursor-pointer"
+              >
+                {product.category}
+              </Link>
+            </>
+          )}
           <ChevronRight className="w-3 h-3" />
           <span className="text-zinc-900">{product.name}</span>
         </nav>

@@ -62,6 +62,7 @@ export default function App() {
           <Route path="/produto/:code" element={<ProductDetails />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/favoritos" element={<Favorites />} />
+          <Route path="/:slug" element={<Home />} />
         </Routes>
       </Layout>
     </Router>
