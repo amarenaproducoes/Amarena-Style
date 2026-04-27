@@ -13,11 +13,19 @@ export interface Product {
   installments?: number; // Installments count (e.g. 12)
   paymentType?: string; // 'credit', 'pix', etc
   options?: string[];
+  colors?: string[];
+  sizes?: string[];
+  referenceCode?: string;
+  sizeGuide?: 'male' | 'female';
+  isNew?: boolean;
+  isActive?: boolean;
 }
 
 export interface CartItem extends Product {
   quantity: number;
   selectedOption?: string;
+  selectedColor?: string;
+  selectedSize?: string;
 }
 
 interface CartStore {

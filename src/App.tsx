@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/layout/Navbar';
 import { MenuDrawer } from './components/layout/MenuDrawer';
 import { CartDrawer } from './components/layout/CartDrawer';
@@ -32,7 +32,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex gap-6 md:gap-8 justify-center">
           <span className="cursor-pointer hover:text-zinc-600 transition-colors">Privacidade</span>
           <span className="cursor-pointer hover:text-zinc-600 transition-colors">Termos</span>
-          <span className="cursor-pointer hover:text-zinc-600 transition-colors">Ajuda</span>
+          <a href="https://wa.me/5511933014850?text=Ol%C3%A1.%20Estou%20com%20d%C3%BAvidas%20no%20site%20do%20Amarena%20Style.%20Poderia%20me%20Ajudar%3F" target="_blank" rel="noopener noreferrer" className="cursor-pointer hover:text-zinc-600 transition-colors">Ajuda</a>
         </div>
       </footer>
     </div>

@@ -7,11 +7,10 @@ import { useState } from 'react';
 export function CartDrawer() {
   const { isCartOpen, closeCart, items, updateQuantity, removeItem, getTotals, clearCart } = useCartStore();
   const { totalPrice } = getTotals();
-  const [address, setAddress] = useState('');
 
   const handleCheckout = () => {
     if (items.length === 0) return;
-    const url = formatWhatsAppMessage(items, totalPrice, address);
+    const url = formatWhatsAppMessage(items, totalPrice);
     window.open(url, '_blank');
     clearCart();
     closeCart();
@@ -107,19 +106,6 @@ export function CartDrawer() {
                       </div>
                     </div>
                   ))}
-                  
-                  {/* Address Input for WhatsApp */}
-                  <div className="pt-4 border-t border-zinc-200 mt-6">
-                    <label className="block text-xs font-medium text-zinc-700 mb-2 font-sans uppercase tracking-wide">
-                      Endereço de Entrega (Opcional)
-                    </label>
-                    <textarea 
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Ex: Rua das Flores, 123, Apto 42 - Centro"
-                      className="w-full text-sm font-sans p-3 border border-zinc-200 focus:outline-none focus:border-wine-800 focus:ring-1 focus:ring-wine-800 resize-none h-20"
-                    />
-                  </div>
                 </div>
               )}
             </div>

@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { MOCK_DEPARTMENTS } from '../../data/mock';
+import { X, ChevronRight, ChevronDown, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useProductStore } from '../../store/useProductStore';
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -9,6 +10,30 @@ interface MenuDrawerProps {
 }
 
 export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
+  const { departments, setFilter } = useProductStore();
+  const [expandedDept, setExpandedDept] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const handleNovidades = () => {
+    setFilter({ isNew: true });
+    onClose();
+    navigate('/');
+  };
+
+  const handleDeptClick = (deptName: string) => {
+    if (expandedDept === deptName) {
+      setExpandedDept(null);
+    } else {
+      setExpandedDept(deptName);
+    }
+  };
+
+  const handleApplyFilter = (dept?: string, cat?: string) => {
+    setFilter({ department: dept, category: cat });
+    onClose();
+    navigate('/');
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -40,10 +65,18 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
             
             <div className="flex-1 overflow-y-auto py-4 bg-white">
               <nav className="flex flex-col">
+                <button 
+                  onClick={handleNovidades}
+                  className="px-6 md:px-8 py-4 text-sm font-sans tracking-widest uppercase text-wine-800 hover:bg-zinc-50 transition-colors flex items-center gap-3"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Novidades
+                </button>
+
                 <Link 
                   to="/" 
-                  onClick={onClose}
-                  className="px-6 md:px-8 py-4 text-sm font-sans tracking-widest uppercase text-wine-800 hover:bg-zinc-50 transition-colors flex items-center justify-between"
+                  onClick={() => { setFilter(null); onClose(); }}
+                  className="px-6 md:px-8 py-4 text-sm font-sans tracking-widest uppercase text-zinc-900 hover:bg-zinc-50 transition-colors flex items-center justify-between"
                 >
                   Página Inicial
                   <ChevronRight className="w-4 h-4 opacity-50" />
@@ -51,16 +84,45 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
                 
                 <div className="h-px bg-zinc-100 my-2 mx-6 md:mx-8" />
                 
-                {MOCK_DEPARTMENTS.map((dept) => (
-                  <Link
-                    key={dept}
-                    to={`/departamento/${dept.toLowerCase()}`}
-                    onClick={onClose}
-                    className="px-6 md:px-8 py-3.5 text-sm font-sans tracking-wide text-zinc-600 hover:text-wine-800 hover:bg-zinc-50 transition-colors flex items-center justify-between group"
-                  >
-                    {dept}
-                    <ChevronRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-wine-800" />
-                  </Link>
+                {departments.map((dept) => (
+                  <div key={dept.name} className="flex flex-col">
+                    <button
+                      onClick={() => handleDeptClick(dept.name)}
+                      className="px-6 md:px-8 py-3.5 text-sm font-sans tracking-wide text-zinc-600 hover:text-wine-800 hover:bg-zinc-50 transition-colors flex items-center justify-between group"
+                    >
+                      {dept.name}
+                      <div className="flex items-center gap-2">
+                        {expandedDept === dept.name ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      </div>
+                    </button>
+                    
+                    <AnimatePresence>
+                      {expandedDept === dept.name && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="bg-zinc-50 overflow-hidden"
+                        >
+                          <button
+                            onClick={() => handleApplyFilter(dept.name)}
+                            className="w-full text-left px-12 md:px-14 py-3 text-xs uppercase tracking-widest text-wine-800 font-bold hover:bg-zinc-100"
+                          >
+                            Ver Tudo em {dept.name}
+                          </button>
+                          {dept.categories.map(cat => (
+                            <button
+                              key={cat}
+                              onClick={() => handleApplyFilter(dept.name, cat)}
+                              className="w-full text-left px-12 md:px-14 py-3 text-xs tracking-widest text-zinc-500 hover:text-wine-800 hover:bg-zinc-100"
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 ))}
 
                 <div className="h-px bg-zinc-100 my-4 mx-6 md:mx-8" />

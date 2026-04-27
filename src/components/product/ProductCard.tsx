@@ -2,12 +2,13 @@ import { Link } from 'react-router-dom';
 import { Product } from '../../store/useCartStore';
 import { formatPrice } from '../../lib/utils';
 import { Heart } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 
 interface ProductCardProps {
   product: Product;
   index?: number;
+  key?: React.Key;
 }
 
 export function ProductCard({ product, index }: ProductCardProps) {

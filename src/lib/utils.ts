@@ -12,18 +12,22 @@ export function formatPrice(price: number) {
   }).format(price);
 }
 
-export function formatWhatsAppMessage(cartItems: any[], total: number, address: string = "") {
+export function formatWhatsAppMessage(cartItems: any[], total: number) {
   let message = "Olá Amarena Style, gostaria de encomendar os seguintes itens:\n\n";
   
   cartItems.forEach(item => {
-    message += `- ${item.quantity}x ${item.name} (${formatPrice(item.price)})\n`;
+    let itemLine = `- ${item.quantity}x ${item.name}`;
+    if (item.referenceCode) {
+      itemLine += ` (Ref: ${item.referenceCode})`;
+    }
+    itemLine += ` (${formatPrice(item.price)})`;
+    if (item.selectedOption) {
+      itemLine += ` [${item.selectedOption}]`;
+    }
+    message += `${itemLine}\n`;
   });
   
   message += `\n*Total: ${formatPrice(total)}*\n`;
   
-  if (address) {
-    message += `\nEndereço de entrega: ${address}`;
-  }
-  
-  return `https://wa.me/5511999999999?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/5511933014850?text=${encodeURIComponent(message)}`;
 }

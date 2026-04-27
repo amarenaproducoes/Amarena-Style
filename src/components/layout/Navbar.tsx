@@ -1,6 +1,6 @@
 import { Menu, Search, ShoppingBag, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useCartStore } from '../../store/useCartStore';
 import { useProductStore } from '../../store/useProductStore';
 import { MOCK_PRODUCTS } from '../../data/mock';
@@ -15,6 +15,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
   const { getTotals, openCart } = useCartStore();
   const { logoUrl } = useProductStore();
   const { totalItems } = getTotals();
+  const location = useLocation();
   
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +25,11 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
   const allProducts = [...registeredProducts, ...MOCK_PRODUCTS];
   
   const [searchResults, setSearchResults] = useState(allProducts);
+
+  useEffect(() => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+  }, [location.pathname]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -123,25 +129,33 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
       {/* Floating Search Bar */}
       <AnimatePresence>
         {isSearchOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="fixed top-16 left-0 w-full bg-white z-30 border-b border-zinc-100 shadow-sm"
-          >
-            <div className="max-w-3xl mx-auto px-4 py-4 relative">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar produtos, categorias..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-zinc-50 border border-zinc-200 rounded-none focus:outline-none focus:border-wine-800 focus:ring-1 focus:ring-wine-800 transition-all font-sans"
-                  autoFocus
-                />
-                <button 
-                  onClick={() => setIsSearchOpen(false)}
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
+              className="fixed inset-0 bg-black/20 z-20"
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="fixed top-16 left-0 w-full bg-white z-30 border-b border-zinc-100 shadow-sm"
+            >
+              <div className="max-w-3xl mx-auto px-4 py-4 relative">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar produtos, categorias..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-3 bg-zinc-50 border border-zinc-200 rounded-none focus:outline-none focus:border-wine-800 focus:ring-1 focus:ring-wine-800 transition-all font-sans"
+                    autoFocus
+                  />
+                  <button 
+                    onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-900"
                 >
                   <X className="w-5 h-5" />
@@ -178,6 +192,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
               )}
             </div>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
