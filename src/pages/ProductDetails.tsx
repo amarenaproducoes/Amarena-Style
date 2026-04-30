@@ -16,38 +16,39 @@ export function ProductDetails() {
   
   const allProducts = registeredProducts.filter(p => p.isActive !== false);
   const product = code ? getProductBySlug(code) : undefined;
+  const isActive = product?.isActive !== false;
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const registeredId = useRef<string | null>(null);
   
   useEffect(() => {
-    if (product && registeredId.current !== product.id) {
+    if (product && isActive && registeredId.current !== product.id) {
       registerView(product.id);
       registeredId.current = product.id;
     }
-  }, [product, registerView]);
+  }, [product, isActive, registerView]);
 
   const [selectedOption, setSelectedOption] = useState<string | undefined>(
-    product?.options ? product.options[0] : undefined
+    product && isActive ? (product.options ? product.options[0] : undefined) : undefined
   );
   const [selectedColor, setSelectedColor] = useState<string | undefined>(
-    product?.colors ? product.colors[0] : undefined
+    product && isActive ? (product.colors ? product.colors[0] : undefined) : undefined
   );
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
-    product?.sizes ? product.sizes[0] : undefined
+    product && isActive ? (product.sizes ? product.sizes[0] : undefined) : undefined
   );
   
-  const [selectedImage, setSelectedImage] = useState(product?.imageUrl || product?.images?.[0]);
+  const [selectedImage, setSelectedImage] = useState(product && isActive ? (product.imageUrl || product.images?.[0]) : undefined);
   
   useEffect(() => {
-    if (product) {
+    if (product && isActive) {
       setSelectedImage(product.imageUrl || product.images?.[0]);
       setSelectedOption(product.options ? product.options[0] : undefined);
       setSelectedColor(product.colors ? product.colors[0] : undefined);
       setSelectedSize(product.sizes ? product.sizes[0] : undefined);
     }
-  }, [product]);
+  }, [product, isActive]);
   
-  if (!product) {
+  if (!product || !isActive) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
         <h2 className="font-serif text-2xl text-zinc-900 mb-4">Produto não encontrado</h2>
