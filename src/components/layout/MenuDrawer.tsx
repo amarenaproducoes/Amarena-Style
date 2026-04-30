@@ -148,14 +148,14 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
               </nav>
             </div>
             
-            <div className="p-6 md:p-8 bg-zinc-50 border-t border-zinc-100 shrink-0">
+            {/* <div className="p-6 md:p-8 bg-zinc-50 border-t border-zinc-100 shrink-0">
               <p className="text-[10px] text-zinc-500 font-sans tracking-[0.2em] uppercase leading-relaxed mb-4 text-center">
                 Benefícios Exclusivos
               </p>
               <button className="w-full py-4 border border-wine-800 text-wine-800 font-sans text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase hover:bg-wine-800 hover:text-white transition-colors">
                 Fazer Login
               </button>
-            </div>
+            </div> */}
           </motion.div>
         </>
       )}
