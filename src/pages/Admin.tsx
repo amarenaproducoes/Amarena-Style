@@ -10,10 +10,37 @@ export function Admin() {
   const { 
     logoUrl, setLogoUrl, products, addProduct, updateProduct, removeProduct, 
     departments, setDepartments, banners, setBanners, sizeGuides, updateSizeGuide,
-    pinnedProductIds, setPinnedProducts, getProductViewsInRange
+    pinnedProductIds, setPinnedProducts, getProductViewsInRange,
+    announcement, setAnnouncement
   } = useProductStore();
   
   const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales' | 'analytics'>('products');
+
+  const [announcementForm, setAnnouncementForm] = useState({
+    text: '',
+    link: '',
+    active: false
+  });
+
+  React.useEffect(() => {
+    if (announcement) {
+      setAnnouncementForm({
+        text: announcement.text,
+        link: announcement.link || '',
+        active: announcement.active
+      });
+    }
+  }, [announcement]);
+
+  const handleSaveAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await setAnnouncement(announcementForm);
+      alert('Faixa de anúncio salva com sucesso!');
+    } catch (err: any) {
+      alert(`Erro ao salvar anúncio: ${err.message}`);
+    }
+  };
 
   // Analytics State
   const [analyticsData, setAnalyticsData] = useState<{
@@ -973,6 +1000,48 @@ export function Admin() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="bg-white p-6 border border-zinc-100 md:col-span-2">
+            <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-6">Barra de Anúncio (Scroll)</h2>
+            <form onSubmit={handleSaveAnnouncement} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Texto do Anúncio</label>
+                  <input 
+                    type="text" 
+                    value={announcementForm.text} 
+                    onChange={e => setAnnouncementForm({...announcementForm, text: e.target.value})} 
+                    placeholder="Ex: FRETE GRÁTIS EM COMPRAS ACIMA DE R$ 200,00"
+                    className="w-full border p-2 text-sm outline-none focus:border-wine-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Link de Destino (Opcional)</label>
+                  <input 
+                    type="text" 
+                    value={announcementForm.link} 
+                    onChange={e => setAnnouncementForm({...announcementForm, link: e.target.value})} 
+                    placeholder="Ex: /categoria/novidades ou https://exemplo.com"
+                    className="w-full border p-2 text-sm outline-none focus:border-wine-800"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={announcementForm.active} 
+                    onChange={e => setAnnouncementForm({...announcementForm, active: e.target.checked})} 
+                    className="w-4 h-4 text-wine-800" 
+                  />
+                  <span className="text-xs uppercase tracking-widest text-zinc-500">Ativar Barra de Anúncio</span>
+                </label>
+                <button type="submit" className="bg-wine-800 text-white px-8 py-2 text-xs uppercase font-bold hover:bg-wine-900 transition-colors">
+                  Salvar Barra
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -26,12 +26,19 @@ export interface SizeGuide {
   }
 }
 
+export interface Announcement {
+  text: string;
+  link?: string;
+  active: boolean;
+}
+
 interface ProductStore {
   products: Product[];
   logoUrl: string | null;
   departments: Department[];
   banners: Banner[];
   sizeGuides: SizeGuide[];
+  announcement: Announcement | null;
   initialized: boolean;
   activeFilter: { department?: string, category?: string, isNew?: boolean } | null;
   favorites: string[];
@@ -40,6 +47,7 @@ interface ProductStore {
   setLogoUrl: (url: string) => Promise<void>;
   setDepartments: (depts: Department[]) => Promise<void>;
   setBanners: (banners: Banner[]) => Promise<void>;
+  setAnnouncement: (announcement: Announcement) => Promise<void>;
   setFilter: (filter: { department?: string, category?: string, isNew?: boolean } | null) => void;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
@@ -60,6 +68,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   departments: [],
   banners: [],
   sizeGuides: [],
+  announcement: null,
   initialized: false,
   activeFilter: null,
   favorites: [],
@@ -111,6 +120,13 @@ export const useProductStore = create<ProductStore>((set, get) => ({
             set({ pinnedProductIds: JSON.parse(pinned.value) });
           } catch(e) {}
         }
+
+        const announcement = settingsRes.data.find(s => s.id === 'announcement');
+        if (announcement) {
+          try {
+            set({ announcement: JSON.parse(announcement.value) });
+          } catch(e) {}
+        }
       }
 
       if (productsRes.data) {
@@ -147,6 +163,12 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   setBanners: async (banners) => {
     set({ banners });
     const { error } = await supabase.from('settings').upsert({ id: 'banners', value: JSON.stringify(banners) });
+    if (error) throw error;
+  },
+
+  setAnnouncement: async (announcement) => {
+    set({ announcement });
+    const { error } = await supabase.from('settings').upsert({ id: 'announcement', value: JSON.stringify(announcement) });
     if (error) throw error;
   },
 
