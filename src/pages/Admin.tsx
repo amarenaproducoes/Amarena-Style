@@ -123,7 +123,7 @@ export function Admin() {
         .sort((a, b) => b.count - a.count);
 
       const topProducts = Object.entries(productCounts)
-        .sort((a, b) => b.count - a.count)
+        .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
         .map(([id]) => id);
 
@@ -467,7 +467,7 @@ export function Admin() {
         return;
       }
       
-      const newPreviews = files.map(file => URL.createObjectURL(file));
+      const newPreviews = files.map((file: File) => URL.createObjectURL(file));
       setProductImagesFiles(prev => [...prev, ...files]);
       setProductImagesPreviews(prev => [...prev, ...newPreviews]);
       
@@ -1873,15 +1873,11 @@ export function Admin() {
                       <Edit2 size={16} />
                     </button>
                     <button 
-                      onClick={() => {
-                        if (window.confirm(`Deseja realmente excluir o produto "${p.name}"?`)) {
-                          removeProduct(p.id);
-                        }
-                      }}
-                      className="p-2.5 bg-zinc-50 text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all rounded-sm border border-zinc-100 flex items-center justify-center"
-                      title="Excluir Produto"
+                      onClick={() => updateProduct(p.id, { isActive: !p.isActive })}
+                      className={`p-2.5 bg-zinc-50 transition-all rounded-sm border border-zinc-100 flex items-center justify-center ${p.isActive === false ? 'text-green-600 hover:bg-green-50' : 'text-zinc-400 hover:text-red-500 hover:bg-red-50'}`}
+                      title={p.isActive === false ? 'Ativar no site' : 'Inativar no site'}
                     >
-                      <Trash2 size={16} />
+                      {p.isActive === false ? <Plus size={16} /> : <X size={16} />}
                     </button>
                   </div>
                 </div>

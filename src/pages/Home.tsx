@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { ProductCard } from '../components/product/ProductCard';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { slugify } from '../utils/slugify';
 
 export function Home() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const { products: registeredProducts, banners, departments, activeFilter, setFilter, pinnedProductIds, getProductViewsInRange } = useProductStore();
   const [viewCounts, setViewCounts] = useState<{ [key: string]: number }>({});
@@ -207,14 +208,20 @@ export function Home() {
           </h4>
           {activeFilter ? (
             <button 
-              onClick={() => setFilter(null)}
+              onClick={() => {
+                setFilter(null);
+                navigate('/');
+              }}
               className="text-[10px] uppercase tracking-widest border-b border-red-400 pb-1 text-red-500 font-bold hover:opacity-80 transition-opacity"
             >
               Limpar Filtro
             </button>
           ) : (
             <button 
-              onClick={() => setFilter(null)} 
+              onClick={() => {
+                setFilter(null);
+                navigate('/');
+              }} 
               className="hidden md:inline-block text-[10px] uppercase tracking-widest border-b border-wine-800 pb-1 text-wine-800 font-bold hover:opacity-80 transition-opacity"
             >
               Ver todos os produtos
@@ -239,7 +246,10 @@ export function Home() {
         
         <div className="mt-8 text-center md:hidden">
           <button 
-            onClick={() => setFilter(null)}
+            onClick={() => {
+              setFilter(null);
+              navigate('/');
+            }}
             className="inline-block text-[10px] uppercase tracking-widest border-b border-wine-800 pb-1 text-wine-800 font-bold hover:opacity-80 transition-opacity"
           >
             Ver todos os produtos
