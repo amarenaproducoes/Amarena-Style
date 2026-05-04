@@ -15,6 +15,7 @@ export function CartDrawer() {
   const [isValidating, setIsValidating] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isWhatsAppAgreed, setIsWhatsAppAgreed] = useState(false);
 
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
@@ -239,7 +240,22 @@ export function CartDrawer() {
                   )}
                 </div>
 
-                <div className="space-y-2 mb-6">
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-start gap-3 bg-zinc-50 p-4 rounded-sm border border-zinc-100">
+                    <div className="flex items-center h-5">
+                      <input
+                        id="whatsapp-agreement"
+                        type="checkbox"
+                        checked={isWhatsAppAgreed}
+                        onChange={(e) => setIsWhatsAppAgreed(e.target.checked)}
+                        className="w-4 h-4 text-wine-800 border-zinc-300 rounded focus:ring-wine-800 cursor-pointer"
+                      />
+                    </div>
+                    <label htmlFor="whatsapp-agreement" className="text-[10px] leading-relaxed text-zinc-500 cursor-pointer select-none">
+                      Ao clicar em finalizar, você será redirecionado para o WhatsApp para concluir a sua compra. Caso esteja em um computador, certifique-se de que está conectado ao WhatsApp Web. Caso contrário, refaça o processo pelo celular que contenha o seu WhatsApp.
+                    </label>
+                  </div>
+
                   <div className="flex justify-between items-center text-xs text-zinc-500 uppercase tracking-widest">
                     <span>Subtotal</span>
                     <span>{formatPrice(totalPrice)}</span>
@@ -259,8 +275,8 @@ export function CartDrawer() {
                 <div className="space-y-3">
                   <button 
                     onClick={handleCheckout}
-                    disabled={isProcessing}
-                    className="w-full bg-wine-800 text-white py-4 text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold hover:bg-wine-900 transition-colors disabled:opacity-50"
+                    disabled={isProcessing || !isWhatsAppAgreed}
+                    className="w-full bg-wine-800 text-white py-4 text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold hover:bg-wine-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isProcessing ? 'Processando...' : 'Finalizar via WhatsApp'}
                   </button>

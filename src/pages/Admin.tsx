@@ -11,7 +11,8 @@ export function Admin() {
     logoUrl, setLogoUrl, products, addProduct, updateProduct, removeProduct, 
     departments, setDepartments, banners, setBanners, sizeGuides, updateSizeGuide,
     pinnedProductIds, setPinnedProducts, getProductViewsInRange,
-    announcement, setAnnouncement
+    announcement, setAnnouncement,
+    socialConfig, setSocialConfig
   } = useProductStore();
   
   const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales' | 'analytics'>('products');
@@ -20,6 +21,11 @@ export function Admin() {
     text: '',
     link: '',
     active: false
+  });
+
+  const [socialForm, setSocialForm] = useState({
+    instagram: '',
+    whatsapp: ''
   });
 
   React.useEffect(() => {
@@ -32,6 +38,15 @@ export function Admin() {
     }
   }, [announcement]);
 
+  React.useEffect(() => {
+    if (socialConfig) {
+      setSocialForm({
+        instagram: socialConfig.instagram,
+        whatsapp: socialConfig.whatsapp
+      });
+    }
+  }, [socialConfig]);
+
   const handleSaveAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -39,6 +54,16 @@ export function Admin() {
       alert('Faixa de anúncio salva com sucesso!');
     } catch (err: any) {
       alert(`Erro ao salvar anúncio: ${err.message}`);
+    }
+  };
+
+  const handleSaveSocial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await setSocialConfig(socialForm);
+      alert('Configurações sociais salvas com sucesso!');
+    } catch (err: any) {
+      alert(`Erro ao salvar links: ${err.message}`);
     }
   };
 
@@ -1000,6 +1025,40 @@ export function Admin() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="bg-white p-6 border border-zinc-100 md:col-span-2">
+            <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-6">Links Sociais e Contato</h2>
+            <form onSubmit={handleSaveSocial} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Instagram (URL Completa)</label>
+                  <input 
+                    type="text" 
+                    value={socialForm.instagram} 
+                    onChange={e => setSocialForm({...socialForm, instagram: e.target.value})} 
+                    placeholder="https://instagram.com/amarena.style"
+                    className="w-full border p-2 text-sm outline-none focus:border-wine-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">WhatsApp (Número com DDD)</label>
+                  <input 
+                    type="text" 
+                    value={socialForm.whatsapp} 
+                    onChange={e => setSocialForm({...socialForm, whatsapp: e.target.value})} 
+                    placeholder="5511999999999"
+                    className="w-full border p-2 text-sm outline-none focus:border-wine-800"
+                  />
+                  <p className="text-[10px] text-zinc-400 mt-1 italic">Somente números, ex: 5511933014850</p>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button type="submit" className="bg-wine-800 text-white px-8 py-2 text-xs uppercase font-bold hover:bg-wine-900 transition-colors">
+                  Salvar Links Sociais
+                </button>
+              </div>
+            </form>
           </div>
 
           <div className="bg-white p-6 border border-zinc-100 md:col-span-2">

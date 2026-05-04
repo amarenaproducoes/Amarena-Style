@@ -32,6 +32,11 @@ export interface Announcement {
   active: boolean;
 }
 
+export interface SocialConfig {
+  instagram: string;
+  whatsapp: string;
+}
+
 interface ProductStore {
   products: Product[];
   logoUrl: string | null;
@@ -39,6 +44,7 @@ interface ProductStore {
   banners: Banner[];
   sizeGuides: SizeGuide[];
   announcement: Announcement | null;
+  socialConfig: SocialConfig | null;
   initialized: boolean;
   activeFilter: { department?: string, category?: string, isNew?: boolean } | null;
   favorites: string[];
@@ -48,6 +54,7 @@ interface ProductStore {
   setDepartments: (depts: Department[]) => Promise<void>;
   setBanners: (banners: Banner[]) => Promise<void>;
   setAnnouncement: (announcement: Announcement) => Promise<void>;
+  setSocialConfig: (config: SocialConfig) => Promise<void>;
   setFilter: (filter: { department?: string, category?: string, isNew?: boolean } | null) => void;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
@@ -69,6 +76,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   banners: [],
   sizeGuides: [],
   announcement: null,
+  socialConfig: null,
   initialized: false,
   activeFilter: null,
   favorites: [],
@@ -127,6 +135,13 @@ export const useProductStore = create<ProductStore>((set, get) => ({
             set({ announcement: JSON.parse(announcement.value) });
           } catch(e) {}
         }
+
+        const social = settingsRes.data.find(s => s.id === 'social_config');
+        if (social) {
+          try {
+            set({ socialConfig: JSON.parse(social.value) });
+          } catch(e) {}
+        }
       }
 
       if (productsRes.data) {
@@ -169,6 +184,12 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   setAnnouncement: async (announcement) => {
     set({ announcement });
     const { error } = await supabase.from('settings').upsert({ id: 'announcement', value: JSON.stringify(announcement) });
+    if (error) throw error;
+  },
+
+  setSocialConfig: async (config) => {
+    set({ socialConfig: config });
+    const { error } = await supabase.from('settings').upsert({ id: 'social_config', value: JSON.stringify(config) });
     if (error) throw error;
   },
 

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/layout/Navbar';
 import { AnnouncementBar } from './components/layout/AnnouncementBar';
@@ -8,12 +8,15 @@ import { Home } from './pages/Home';
 import { ProductDetails } from './pages/ProductDetails';
 import { Admin } from './pages/Admin';
 import { Favorites } from './pages/Favorites';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { TermsOfUse } from './pages/TermsOfUse';
 import { useProductStore } from './store/useProductStore';
+import { Instagram, MessageCircle } from 'lucide-react';
 
 function Layout({ children }: { children: React.ReactNode }) {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { init, initialized } = useProductStore();
+  const { init, initialized, socialConfig } = useProductStore();
   const location = useLocation();
 
   useEffect(() => {
@@ -43,13 +46,29 @@ function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <footer className="h-16 md:h-12 border-t border-zinc-100 flex flex-col md:flex-row items-center justify-between px-4 md:px-8 text-[9px] uppercase tracking-[0.2em] text-zinc-400 mt-auto bg-white pb-4 md:pb-0 z-10 w-full max-w-7xl mx-auto gap-4 md:gap-0 pt-4 md:pt-0">
-        <div className="text-center md:text-left">&copy; {new Date().getFullYear()} Amarena Style. Todos os direitos reservados.</div>
-        <div className="flex gap-6 md:gap-8 justify-center">
-          <span className="cursor-pointer hover:text-zinc-600 transition-colors">Privacidade</span>
-          <span className="cursor-pointer hover:text-zinc-600 transition-colors">Termos</span>
-          <a href="https://wa.me/5511933014850?text=Ol%C3%A1.%20Estou%20com%20d%C3%BAvidas%20no%20site%20do%20Amarena%20Style.%20Poderia%20me%20Ajudar%3F" target="_blank" rel="noopener noreferrer" className="cursor-pointer hover:text-zinc-600 transition-colors">Ajuda</a>
+      <footer className="py-8 border-t border-zinc-100 flex flex-col items-center gap-6 text-[9px] uppercase tracking-[0.2em] text-zinc-400 mt-auto bg-white z-10 w-full max-w-7xl mx-auto">
+        <div className="flex gap-8 justify-center">
+          <Link to="/privacidade" className="cursor-pointer hover:text-zinc-600 transition-colors">Privacidade</Link>
+          <Link to="/termos" className="cursor-pointer hover:text-zinc-600 transition-colors">Termos</Link>
+          <a href={`https://wa.me/${socialConfig?.whatsapp || '5511933014850'}?text=Ol%C3%A1.%20Estou%20com%20d%C3%BAvidas%20no%20site%20do%20Amarena%20Style.%20Poderia%20me%20Ajudar%3F`} target="_blank" rel="noopener noreferrer" className="cursor-pointer hover:text-zinc-600 transition-colors">Ajuda</a>
         </div>
+
+        <div className="flex gap-6 items-center">
+          {socialConfig?.instagram && (
+            <a href={socialConfig.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-zinc-500 hover:text-wine-800 transition-colors group">
+              <Instagram size={18} className="group-hover:scale-110 transition-transform" />
+              <span className="hidden md:inline">Instagram</span>
+            </a>
+          )}
+          {socialConfig?.whatsapp && (
+            <a href={`https://wa.me/${socialConfig.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-zinc-500 hover:text-green-600 transition-colors group">
+              <MessageCircle size={18} className="group-hover:scale-110 transition-transform" />
+              <span className="hidden md:inline">WhatsApp</span>
+            </a>
+          )}
+        </div>
+
+        <div className="text-center">&copy; {new Date().getFullYear()} Amarena Style. Todos os direitos reservados.</div>
       </footer>
     </div>
   );
@@ -64,6 +83,8 @@ export default function App() {
           <Route path="/produto/:code" element={<ProductDetails />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/favoritos" element={<Favorites />} />
+          <Route path="/privacidade" element={<PrivacyPolicy />} />
+          <Route path="/termos" element={<TermsOfUse />} />
           <Route path="/:slug" element={<Home />} />
         </Routes>
       </Layout>
