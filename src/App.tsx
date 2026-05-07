@@ -7,11 +7,24 @@ import { CartDrawer } from './components/layout/CartDrawer';
 import { Home } from './pages/Home';
 import { ProductDetails } from './pages/ProductDetails';
 import { Admin } from './pages/Admin';
+import { Login } from './pages/Login';
 import { Favorites } from './pages/Favorites';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfUse } from './pages/TermsOfUse';
 import { useProductStore } from './store/useProductStore';
+import { useAuthStore } from './store/useAuthStore';
+import { ADMIN_SECRET_PATH } from './constants';
 import { Instagram, MessageCircle } from 'lucide-react';
+
+function AdminGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuthStore();
+  
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  return <>{children}</>;
+}
 
 function Layout({ children }: { children: React.ReactNode }) {
 
@@ -81,7 +94,14 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/produto/:code" element={<ProductDetails />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route 
+            path={`/${ADMIN_SECRET_PATH}`} 
+            element={
+              <AdminGuard>
+                <Admin />
+              </AdminGuard>
+            } 
+          />
           <Route path="/favoritos" element={<Favorites />} />
           <Route path="/privacidade" element={<PrivacyPolicy />} />
           <Route path="/termos" element={<TermsOfUse />} />

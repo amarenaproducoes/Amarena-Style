@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useProductStore, Department } from '../store/useProductStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { formatPrice } from '../lib/utils';
 import { Product } from '../store/useCartStore';
 import { uploadImageToSupabase } from '../lib/storage';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, Edit2, X, Upload } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Upload, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function Admin() {
   const { 
@@ -14,6 +16,16 @@ export function Admin() {
     announcement, setAnnouncement,
     socialConfig, setSocialConfig
   } = useProductStore();
+
+  const logout = useAuthStore(state => state.logout);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    if (window.confirm('Deseja realmente sair do painel administrativo?')) {
+      logout();
+      navigate('/');
+    }
+  };
   
   const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales' | 'analytics'>('products');
 
@@ -707,7 +719,17 @@ export function Admin() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12 w-full">
-      <h1 className="font-serif text-3xl text-zinc-900 mb-8">Área Administrativa</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="font-serif text-3xl text-zinc-900">Área Administrativa</h1>
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-xs uppercase tracking-widest text-zinc-400 hover:text-wine-800 transition-colors"
+          title="Sair do Painel"
+        >
+          <LogOut size={16} />
+          Sair
+        </button>
+      </div>
       
       <div className="flex flex-wrap border-b border-zinc-200 mb-8 gap-2 pb-2">
         <button 

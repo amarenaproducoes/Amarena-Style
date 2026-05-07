@@ -137,14 +137,6 @@ export function MenuDrawer({ isOpen, onClose }: MenuDrawerProps) {
                 ))}
 
                 <div className="h-px bg-zinc-100 my-4 mx-6 md:mx-8" />
-                
-                <Link
-                  to="/admin"
-                  onClick={onClose}
-                  className="px-6 md:px-8 py-3 text-xs uppercase tracking-widest font-semibold font-sans text-wine-800 hover:text-wine-900 transition-colors"
-                >
-                  Área Administrativa
-                </Link>
               </nav>
             </div>
             
