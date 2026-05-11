@@ -9,7 +9,10 @@ import { supabase } from '../../lib/supabase';
 export function CartDrawer() {
   const { isCartOpen, closeCart, items, updateQuantity, removeItem, getTotals, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCartStore();
   const { totalItems, totalPrice, discountAmount, finalPrice } = getTotals();
-  const { validateCoupon, redeemCoupon } = useProductStore();
+  const { 
+    validateCoupon, redeemCoupon, isStockSystemEnabled, 
+    products, adjustStock 
+  } = useProductStore();
 
   const [couponInput, setCouponInput] = useState('');
   const [isValidating, setIsValidating] = useState(false);
@@ -40,6 +43,19 @@ export function CartDrawer() {
     
     setIsProcessing(true);
     try {
+      // 0. Verificar estoque se habilitado
+      if (isStockSystemEnabled) {
+        // Busca produtos atualizados do store (que já foram carregados no init)
+        for (const item of items) {
+          const product = products.find(p => p.id === item.id);
+          if (!product || (product.currentStock || 0) < item.quantity) {
+            alert(`O produto "${item.name}" acabou de esgotar ou não possui estoque suficiente. Por favor, ajuste sua sacola.`);
+            setIsProcessing(false);
+            return;
+          }
+        }
+      }
+
       // 1. Cadastrar a compra no Supabase
       const { data: purchase, error: pError } = await supabase
         .from('purchases')
@@ -68,12 +84,17 @@ export function CartDrawer() {
 
       if (itemsError) throw itemsError;
 
-      // 3. Resgatar cupom se houver
+      // 3. Atualizar estoque (Sempre registra o movimento, mas o bloqueio acima só ocorre se isStockSystemEnabled for true)
+      for (const item of items) {
+        await adjustStock(item.id, 'out', item.quantity, 'Venda via Site');
+      }
+
+      // 4. Resgatar cupom se houver
       if (appliedCoupon) {
         await redeemCoupon(appliedCoupon);
       }
 
-      // 4. Abrir WhatsApp
+      // 5. Abrir WhatsApp
       const url = formatWhatsAppMessage(
         items, 
         finalPrice, 

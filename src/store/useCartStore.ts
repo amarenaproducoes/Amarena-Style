@@ -23,6 +23,9 @@ export interface Product {
   sizeGuide?: 'male' | 'female';
   isNew?: boolean;
   isActive?: boolean;
+  initialStock?: number;
+  currentStock?: number;
+  unitCost?: number;
 }
 
 export interface CartItem extends Product {

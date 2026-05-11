@@ -37,6 +37,15 @@ export interface SocialConfig {
   whatsapp: string;
 }
 
+export interface InventoryMovement {
+  id: string;
+  productId: string;
+  type: 'in' | 'out' | 'adjustment';
+  reason: string;
+  quantity: number;
+  createdAt: string;
+}
+
 interface ProductStore {
   products: Product[];
   logoUrl: string | null;
@@ -45,6 +54,8 @@ interface ProductStore {
   sizeGuides: SizeGuide[];
   announcement: Announcement | null;
   socialConfig: SocialConfig | null;
+  isStockSystemEnabled: boolean;
+  inventoryMovements: InventoryMovement[];
   initialized: boolean;
   activeFilter: { department?: string, category?: string, isNew?: boolean } | null;
   favorites: string[];
@@ -55,10 +66,12 @@ interface ProductStore {
   setBanners: (banners: Banner[]) => Promise<void>;
   setAnnouncement: (announcement: Announcement) => Promise<void>;
   setSocialConfig: (config: SocialConfig) => Promise<void>;
+  setStockSystemEnabled: (enabled: boolean) => Promise<void>;
   setFilter: (filter: { department?: string, category?: string, isNew?: boolean } | null) => void;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
   removeProduct: (id: string) => Promise<void>;
+  adjustStock: (productId: string, type: 'in' | 'out' | 'adjustment', quantity: number, reason: string) => Promise<void>;
   updateSizeGuide: (guide: SizeGuide) => Promise<void>;
   toggleFavorite: (id: string) => void;
   registerView: (productId: string) => Promise<void>;
@@ -77,6 +90,8 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   sizeGuides: [],
   announcement: null,
   socialConfig: null,
+  isStockSystemEnabled: true,
+  inventoryMovements: [],
   initialized: false,
   activeFilter: null,
   favorites: [],
@@ -98,10 +113,11 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     
     try {
       // Parallelize fetches for better performance
-      const [settingsRes, productsRes, sizeGuidesRes] = await Promise.all([
+      const [settingsRes, productsRes, sizeGuidesRes, movementsRes] = await Promise.all([
         supabase.from('settings').select('*'),
         supabase.from('products').select('*'),
-        supabase.from('size_guides').select('*')
+        supabase.from('size_guides').select('*'),
+        supabase.from('inventory_movements').select('*').order('created_at', { ascending: false })
       ]);
         
       if (settingsRes.data) {
@@ -142,12 +158,20 @@ export const useProductStore = create<ProductStore>((set, get) => ({
             set({ socialConfig: JSON.parse(social.value) });
           } catch(e) {}
         }
+
+        const stockEnabled = settingsRes.data.find(s => s.id === 'is_stock_system_enabled');
+        if (stockEnabled) {
+          set({ isStockSystemEnabled: stockEnabled.value === 'true' });
+        }
       }
 
       if (productsRes.data) {
         const mappedProducts = (productsRes.data as any[]).map(p => ({
           ...p,
           originalPrice: p.original_price, // Mapeia snake_case para camelCase
+          initialStock: p.initial_stock,
+          currentStock: p.current_stock,
+          unitCost: p.unit_cost,
           label: p.label // Usa a coluna 'label' diretamente
         }));
         set({ products: mappedProducts as Product[] });
@@ -155,6 +179,15 @@ export const useProductStore = create<ProductStore>((set, get) => ({
 
       if (sizeGuidesRes.data) {
         set({ sizeGuides: sizeGuidesRes.data as SizeGuide[] });
+      }
+
+      if (movementsRes.data) {
+        const mappedMovements = (movementsRes.data as any[]).map(m => ({
+          ...m,
+          productId: m.product_id,
+          createdAt: m.created_at
+        }));
+        set({ inventoryMovements: mappedMovements });
       }
     } catch (error) {
       console.error('Failed to init from Supabase:', error);
@@ -193,6 +226,12 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     if (error) throw error;
   },
 
+  setStockSystemEnabled: async (enabled) => {
+    set({ isStockSystemEnabled: enabled });
+    const { error } = await supabase.from('settings').upsert({ id: 'is_stock_system_enabled', value: enabled ? 'true' : 'false' });
+    if (error) throw error;
+  },
+
   setFilter: (filter) => {
     set({ activeFilter: filter });
   },
@@ -204,7 +243,18 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       dbUpdates.original_price = dbUpdates.originalPrice;
       delete dbUpdates.originalPrice;
     }
-    // Não alteramos 'label' pois agora usamos este nome no banco também
+    if ('initialStock' in dbUpdates) {
+      dbUpdates.initial_stock = dbUpdates.initialStock;
+      delete dbUpdates.initialStock;
+    }
+    if ('currentStock' in dbUpdates) {
+      dbUpdates.current_stock = dbUpdates.currentStock;
+      delete dbUpdates.currentStock;
+    }
+    if ('unitCost' in dbUpdates) {
+      dbUpdates.unit_cost = dbUpdates.unitCost;
+      delete dbUpdates.unitCost;
+    }
 
     set((state) => ({
       products: state.products.map(p => p.id === id ? { ...p, ...updates } : p)
@@ -234,18 +284,67 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       isNew: product.isNew || false,
       isActive: product.isActive !== false,
       original_price: product.originalPrice || null,
-      label: product.label || null
+      label: product.label || null,
+      initial_stock: product.initialStock || 0,
+      current_stock: product.currentStock ?? product.initialStock ?? 0,
+      unit_cost: product.unitCost || null
     };
 
     set((state) => ({ products: [...state.products, product] }));
     const { error } = await supabase.from('products').upsert([productRecord]);
     if (error) throw error;
+
+    // Registrar o movimento inicial se houver estoque
+    if ((product.initialStock || 0) > 0) {
+      await get().adjustStock(product.id, 'adjustment', product.initialStock || 0, 'Estoque Inicial');
+    }
   },
 
   removeProduct: async (id) => {
     set((state) => ({ products: state.products.filter(p => p.id !== id) }));
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  adjustStock: async (productId, type, quantity, reason) => {
+    const product = get().products.find(p => p.id === productId);
+    if (!product) return;
+
+    const currentQty = product.currentStock || 0;
+    let newQty = currentQty;
+
+    // Logic updated to handle 'in' as positive and 'out' as negative adjustment
+    if (type === 'in') newQty += Math.abs(quantity);
+    else if (type === 'out') newQty -= Math.abs(quantity);
+    else if (type === 'adjustment') newQty = currentQty + quantity; 
+
+    // Update product current stock
+    await get().updateProduct(productId, { currentStock: newQty });
+
+    // Register movement
+    const movement = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      product_id: productId,
+      type,
+      quantity: type === 'out' ? -Math.abs(quantity) : Math.abs(quantity),
+      reason,
+      created_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.from('inventory_movements').insert([movement]);
+    if (error) throw error;
+
+    // Update local state for movements
+    set(state => ({
+      inventoryMovements: [{
+        id: movement.id,
+        productId,
+        type,
+        quantity,
+        reason,
+        createdAt: movement.created_at
+      }, ...state.inventoryMovements]
+    }));
   },
 
   updateSizeGuide: async (guide) => {

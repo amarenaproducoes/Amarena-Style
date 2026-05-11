@@ -10,10 +10,20 @@ export function Home() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const { products: registeredProducts, banners, departments, activeFilter, setFilter, pinnedProductIds, getProductViewsInRange } = useProductStore();
+  const { 
+    products: registeredProducts, banners, departments, activeFilter, setFilter, 
+    pinnedProductIds, getProductViewsInRange, isStockSystemEnabled 
+  } = useProductStore();
   const [viewCounts, setViewCounts] = useState<{ [key: string]: number }>({});
   
-  const activeBanners = banners.filter(b => b.active);
+  const activeBanners = banners.filter(b => {
+    if (!b.active) return false;
+    if (isStockSystemEnabled && b.productId) {
+      const product = registeredProducts.find(p => p.id === b.productId);
+      if (product && (product.currentStock || 0) <= 0) return false;
+    }
+    return true;
+  });
   const currentBanner = activeBanners[currentBannerIndex];
   
   // URL Slug logic
@@ -62,7 +72,13 @@ export function Home() {
   }, [activeBanners.length]);
   
   // Filter registered products
-  const allProducts = registeredProducts.filter(p => p.isActive !== false);
+  const allProducts = registeredProducts.filter(p => {
+    const isActive = p.isActive !== false;
+    if (isStockSystemEnabled) {
+      return isActive && (p.currentStock || 0) > 0;
+    }
+    return isActive;
+  });
   
   // Logic for sorting and pinning
   let displayProducts = [...allProducts];
@@ -204,7 +220,7 @@ export function Home() {
               activeFilter.isNew ? 'Novidades' : 
               activeFilter.category ? activeFilter.category : 
               activeFilter.department
-            ) : 'Destaques da Temporada'}
+            ) : 'Destaques'}
           </h4>
           {activeFilter ? (
             <button 

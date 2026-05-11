@@ -5,7 +5,7 @@ import { formatPrice } from '../lib/utils';
 import { Product } from '../store/useCartStore';
 import { uploadImageToSupabase } from '../lib/storage';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, Edit2, X, Upload, LogOut } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Upload, LogOut, Package, History, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function Admin() {
@@ -14,7 +14,9 @@ export function Admin() {
     departments, setDepartments, banners, setBanners, sizeGuides, updateSizeGuide,
     pinnedProductIds, setPinnedProducts, getProductViewsInRange,
     announcement, setAnnouncement,
-    socialConfig, setSocialConfig
+    socialConfig, setSocialConfig,
+    isStockSystemEnabled, setStockSystemEnabled,
+    inventoryMovements, adjustStock
   } = useProductStore();
 
   const logout = useAuthStore(state => state.logout);
@@ -27,7 +29,17 @@ export function Admin() {
     }
   };
   
-  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales' | 'analytics'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales' | 'analytics' | 'inventory'>('products');
+
+  // Inventory state
+  const [stockAdjustment, setStockAdjustment] = useState({
+    productId: '',
+    quantity: '',
+    reason: '',
+    type: 'in' as 'in' | 'out' | 'adjustment'
+  });
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [inventorySearch, setInventorySearch] = useState('');
 
   const [announcementForm, setAnnouncementForm] = useState({
     text: '',
@@ -384,6 +396,8 @@ export function Admin() {
     sizeGuide: '' as '' | 'male' | 'female',
     originalPrice: '',
     label: '',
+    initialStock: '',
+    unitCost: '',
     isNew: false,
     isActive: true
   });
@@ -525,6 +539,8 @@ export function Admin() {
       sizeGuide: p.sizeGuide as ('' | 'male' | 'female') || '',
       originalPrice: p.originalPrice?.toString() || '',
       label: p.label || '',
+      initialStock: p.initialStock?.toString() || '0',
+      unitCost: p.unitCost?.toString() || '',
       isNew: p.isNew || false,
       isActive: p.isActive !== false
     });
@@ -551,6 +567,8 @@ export function Admin() {
       sizeGuide: '',
       originalPrice: '',
       label: '',
+      initialStock: '',
+      unitCost: '',
       isNew: false,
       isActive: true
     });
@@ -611,6 +629,9 @@ export function Admin() {
         sizeGuide: productForm.sizeGuide || undefined,
         originalPrice: productForm.originalPrice ? parseFloat(productForm.originalPrice) : undefined,
         label: productForm.label || undefined,
+        initialStock: parseInt(productForm.initialStock) || 0,
+        unitCost: productForm.unitCost ? parseFloat(productForm.unitCost) : undefined,
+        currentStock: editingId ? undefined : (parseInt(productForm.initialStock) || 0),
         isNew: productForm.isNew,
         isActive: productForm.isActive,
         imageUrl: finalImageUrl, 
@@ -780,7 +801,228 @@ export function Admin() {
         >
           Análise de Vendas
         </button>
+        <button 
+          className={`py-2 px-4 md:px-6 font-semibold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'inventory' ? 'border-b-2 border-wine-800 text-wine-800' : 'text-zinc-500'}`}
+          onClick={() => setActiveTab('inventory')}
+        >
+          Estoque
+        </button>
       </div>
+
+      {activeTab === 'inventory' && (
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 border border-zinc-100 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Status do Sistema</p>
+                <div className="flex items-center gap-2">
+                  <Package className={isStockSystemEnabled ? "text-green-600" : "text-zinc-400"} size={20} />
+                  <span className={`text-xs font-bold uppercase ${isStockSystemEnabled ? 'text-green-600' : 'text-zinc-500'}`}>
+                    {isStockSystemEnabled ? 'Habilitado' : 'Desabilitado'}
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setStockSystemEnabled(!isStockSystemEnabled)}
+                className={`text-[9px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm transition-colors ${isStockSystemEnabled ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-wine-800 text-white hover:bg-wine-900'}`}
+              >
+                {isStockSystemEnabled ? 'Desativar' : 'Ativar'}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 bg-white p-6 border border-zinc-100 h-fit">
+              <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-6 flex items-center gap-2">
+                <Plus size={18} /> Ajuste Manual
+              </h2>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const qtyValue = Math.abs(parseInt(stockAdjustment.quantity));
+                if (!stockAdjustment.productId || !qtyValue || !stockAdjustment.reason) return;
+                setIsAdjusting(true);
+                try {
+                  await adjustStock(
+                    stockAdjustment.productId,
+                    stockAdjustment.type,
+                    qtyValue,
+                    stockAdjustment.reason
+                  );
+                  setStockAdjustment({ productId: '', quantity: '', reason: '', type: 'in' });
+                  alert('Ajuste realizado com sucesso!');
+                } catch (err: any) {
+                  alert('Erro ao ajustar estoque: ' + err.message);
+                } finally {
+                  setIsAdjusting(false);
+                }
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1 font-bold">Produto</label>
+                  <select 
+                    required 
+                    value={stockAdjustment.productId} 
+                    onChange={e => setStockAdjustment({...stockAdjustment, productId: e.target.value})}
+                    className="w-full border p-2 text-sm outline-none focus:border-wine-800"
+                  >
+                    <option value="">Selecione o produto...</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.referenceCode})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1 font-bold">Tipo de Movimentação</label>
+                  <select 
+                    required 
+                    value={stockAdjustment.type} 
+                    onChange={e => setStockAdjustment({...stockAdjustment, type: e.target.value as any})}
+                    className="w-full border p-2 text-sm outline-none focus:border-wine-800"
+                  >
+                    <option value="in">Entrada (+)</option>
+                    <option value="out">Saída (-)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1 font-bold">Quantidade</label>
+                  <input 
+                    required 
+                    type="number" 
+                    min="1"
+                    value={stockAdjustment.quantity} 
+                    onChange={e => setStockAdjustment({...stockAdjustment, quantity: e.target.value})}
+                    className="w-full border p-2 text-sm outline-none focus:border-wine-800"
+                    placeholder="Ex: 5"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1 font-bold">Motivo</label>
+                  <input 
+                    required 
+                    type="text" 
+                    value={stockAdjustment.reason} 
+                    onChange={e => setStockAdjustment({...stockAdjustment, reason: e.target.value})}
+                    className="w-full border p-2 text-sm outline-none focus:border-wine-800"
+                    placeholder="Ex: Correção de inventário"
+                  />
+                </div>
+                <button type="submit" disabled={isAdjusting} className="w-full bg-wine-800 text-white py-3 text-xs uppercase font-bold tracking-widest hover:bg-wine-900 disabled:opacity-50 transition-colors">
+                  {isAdjusting ? 'Processando...' : 'Confirmar Ajuste'}
+                </button>
+              </form>
+            </div>
+
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white p-6 border border-zinc-100 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 flex items-center gap-2">
+                    <Package size={18} /> Saldo de Produtos
+                  </h2>
+                  <input 
+                    type="text"
+                    placeholder="Filtrar por nome, código ou departamento..."
+                    value={inventorySearch}
+                    onChange={e => setInventorySearch(e.target.value)}
+                    className="text-xs border p-2 w-64 outline-none focus:border-wine-800"
+                  />
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[11px] text-left">
+                    <thead className="bg-zinc-50 border-y border-zinc-100">
+                      <tr>
+                        <th className="p-3 uppercase tracking-widest font-bold">Produto</th>
+                        <th className="p-3 uppercase tracking-widest font-bold">Depto</th>
+                        <th className="p-3 uppercase tracking-widest font-bold">Custo</th>
+                        <th className="p-3 uppercase tracking-widest font-bold">Estoque Inicial</th>
+                        <th className="p-3 uppercase tracking-widest font-bold">Saldo Atual</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-50">
+                      {products
+                        .filter(p => {
+                          const query = inventorySearch.toLowerCase();
+                          return (
+                            p.name.toLowerCase().includes(query) || 
+                            p.referenceCode?.toLowerCase().includes(query) ||
+                            (p.department || '').toLowerCase().includes(query)
+                          );
+                        })
+                        .map(p => (
+                          <tr key={p.id}>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <img src={p.imageUrl} className="w-6 h-8 object-cover border" />
+                                <div>
+                                  <p className="font-bold">{p.name}</p>
+                                  <p className="text-[9px] text-zinc-400">{p.referenceCode}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3 text-zinc-500 uppercase tracking-tighter">{p.department || '-'}</td>
+                            <td className="p-3 font-mono">
+                              {p.unitCost ? `R$ ${p.unitCost.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-3 font-mono">{p.initialStock || 0}</td>
+                            <td className="p-3">
+                              <span className={`font-mono font-bold px-2 py-0.5 rounded-sm ${ (p.currentStock || 0) <= 2 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                                {p.currentStock || 0}
+                              </span>
+                            </td>
+                          </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 border border-zinc-100 shadow-sm">
+                <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-6 flex items-center gap-2">
+                  <History size={18} /> Histórico de Movimentações
+                </h2>
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="w-full text-[10px] text-left">
+                    <thead className="sticky top-0 bg-zinc-50 border-b border-zinc-100 z-10">
+                      <tr>
+                        <th className="p-3 uppercase tracking-tight font-bold">Data</th>
+                        <th className="p-3 uppercase tracking-tight font-bold">Produto</th>
+                        <th className="p-3 uppercase tracking-tight font-bold">Tipo</th>
+                        <th className="p-3 uppercase tracking-tight font-bold">Qtde</th>
+                        <th className="p-3 uppercase tracking-tight font-bold">Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-50">
+                      {inventoryMovements.map(m => {
+                        const p = products.find(x => x.id === m.productId);
+                        return (
+                          <tr key={m.id}>
+                            <td className="p-3 text-zinc-400 whitespace-nowrap">{new Date(m.createdAt).toLocaleString('pt-BR')}</td>
+                            <td className="p-3">
+                              <p className="font-bold truncate max-w-[150px]">{p?.name || 'Deletado'}</p>
+                            </td>
+                            <td className="p-3 uppercase font-bold text-[9px] tracking-widest">
+                              {m.type === 'in' && <span className="text-green-600">Entrada</span>}
+                              {m.type === 'out' && <span className="text-red-600">Saída</span>}
+                              {m.type === 'adjustment' && <span className="text-zinc-600">Ajuste</span>}
+                            </td>
+                            <td className={`p-3 font-mono font-bold ${m.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {m.quantity > 0 ? `+${m.quantity}` : m.quantity}
+                            </td>
+                            <td className="p-3 text-zinc-500 italic">{m.reason}</td>
+                          </tr>
+                        );
+                      })}
+                      {inventoryMovements.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-zinc-400 italic">Nenhuma movimentação registrada.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeTab === 'coupons' && (
         <div className="space-y-8">
@@ -1717,6 +1959,27 @@ export function Admin() {
                 <div>
                   <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Preço Antigo (Opcional)</label>
                   <input type="number" step="0.01" min="0" value={productForm.originalPrice} onChange={e => setProductForm({...productForm, originalPrice: e.target.value})} placeholder="Para De/Por" className="w-full border p-2 text-sm outline-none" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Qtd Inicial Estoque</label>
+                  <input 
+                    required 
+                    readOnly={!!editingId} 
+                    type="number" 
+                    min="0" 
+                    value={productForm.initialStock} 
+                    onChange={e => setProductForm({...productForm, initialStock: e.target.value})} 
+                    className={`w-full border p-2 text-sm outline-none ${editingId ? 'bg-zinc-50 text-zinc-400 select-none' : ''}`}
+                    placeholder="Obrigatório"
+                  />
+                  {editingId && <p className="text-[9px] text-zinc-400 mt-0.5">Use aba Estoque para ajustes.</p>}
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Custo Unitário (Opcional)</label>
+                  <input type="number" step="0.01" min="0" value={productForm.unitCost} onChange={e => setProductForm({...productForm, unitCost: e.target.value})} className="w-full border p-2 text-sm outline-none" placeholder="0.00" />
                 </div>
               </div>
               

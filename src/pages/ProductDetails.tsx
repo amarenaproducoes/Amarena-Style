@@ -12,9 +12,18 @@ export function ProductDetails() {
   const { code } = useParams();
   const navigate = useNavigate();
   const { addItem, openCart } = useCartStore();
-  const { products: registeredProducts, sizeGuides, favorites, toggleFavorite, registerView, getProductBySlug } = useProductStore();
+  const { 
+    products: registeredProducts, sizeGuides, favorites, toggleFavorite, 
+    registerView, getProductBySlug, isStockSystemEnabled 
+  } = useProductStore();
   
-  const allProducts = registeredProducts.filter(p => p.isActive !== false);
+  const allProducts = registeredProducts.filter(p => {
+    const isActive = p.isActive !== false;
+    if (isStockSystemEnabled) {
+      return isActive && (p.currentStock || 0) > 0;
+    }
+    return isActive;
+  });
   const product = code ? getProductBySlug(code) : undefined;
   const isActive = product?.isActive !== false;
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
