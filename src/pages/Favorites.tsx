@@ -4,9 +4,15 @@ import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 
 export function Favorites() {
-  const { products: registeredProducts, favorites } = useProductStore();
+  const { products: registeredProducts, favorites, isStockSystemEnabled } = useProductStore();
   
-  const allProducts = registeredProducts.filter(p => p.isActive !== false);
+  const allProducts = registeredProducts.filter(p => {
+    const isActive = p.isActive !== false;
+    if (isStockSystemEnabled) {
+      return isActive && (p.currentStock || 0) > 0;
+    }
+    return isActive;
+  });
   const favoriteProducts = allProducts.filter(p => favorites.includes(p.id));
 
   return (

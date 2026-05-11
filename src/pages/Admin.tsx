@@ -840,6 +840,15 @@ export function Admin() {
                 e.preventDefault();
                 const qtyValue = Math.abs(parseInt(stockAdjustment.quantity));
                 if (!stockAdjustment.productId || !qtyValue || !stockAdjustment.reason) return;
+
+                if (stockAdjustment.type === 'out') {
+                  const product = products.find(p => p.id === stockAdjustment.productId);
+                  if (product && (product.currentStock || 0) < qtyValue) {
+                    alert('Saldo insuficiente para realizar esta saída.');
+                    return;
+                  }
+                }
+
                 setIsAdjusting(true);
                 try {
                   await adjustStock(
@@ -865,8 +874,10 @@ export function Admin() {
                     className="w-full border p-2 text-sm outline-none focus:border-wine-800"
                   >
                     <option value="">Selecione o produto...</option>
-                    {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.referenceCode})</option>
+                    {[...products]
+                      .sort((a, b) => (a.referenceCode || '').localeCompare(b.referenceCode || ''))
+                      .map(p => (
+                        <option key={p.id} value={p.id}>{p.name} ({p.referenceCode})</option>
                     ))}
                   </select>
                 </div>
@@ -946,6 +957,7 @@ export function Admin() {
                             (p.department || '').toLowerCase().includes(query)
                           );
                         })
+                        .sort((a, b) => (a.referenceCode || '').localeCompare(b.referenceCode || ''))
                         .map(p => (
                           <tr key={p.id}>
                             <td className="p-3">
@@ -963,7 +975,7 @@ export function Admin() {
                             </td>
                             <td className="p-3 font-mono">{p.initialStock || 0}</td>
                             <td className="p-3">
-                              <span className={`font-mono font-bold px-2 py-0.5 rounded-sm ${ (p.currentStock || 0) <= 2 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                              <span className={`font-mono font-bold px-2 py-0.5 rounded-sm ${ (p.currentStock || 0) > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                                 {p.currentStock || 0}
                               </span>
                             </td>

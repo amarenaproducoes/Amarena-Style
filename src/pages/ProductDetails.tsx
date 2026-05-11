@@ -25,7 +25,8 @@ export function ProductDetails() {
     return isActive;
   });
   const product = code ? getProductBySlug(code) : undefined;
-  const isActive = product?.isActive !== false;
+  const isOutOfStock = isStockSystemEnabled && (product?.currentStock || 0) <= 0;
+  const isActive = product?.isActive !== false && !isOutOfStock;
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const registeredId = useRef<string | null>(null);
   

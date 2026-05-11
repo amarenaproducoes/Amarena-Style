@@ -315,7 +315,10 @@ export const useProductStore = create<ProductStore>((set, get) => ({
 
     // Logic updated to handle 'in' as positive and 'out' as negative adjustment
     if (type === 'in') newQty += Math.abs(quantity);
-    else if (type === 'out') newQty -= Math.abs(quantity);
+    else if (type === 'out') {
+      if (currentQty < Math.abs(quantity)) throw new Error('Saldo insuficiente em estoque para esta saída.');
+      newQty -= Math.abs(quantity);
+    }
     else if (type === 'adjustment') newQty = currentQty + quantity; 
 
     // Update product current stock
