@@ -164,7 +164,7 @@ export function CartDrawer() {
                           <h4 className="font-sans text-sm text-zinc-900 font-medium line-clamp-2 pr-6">{item.name}</h4>
                           <button 
                             onClick={() => removeItem(item.id, item.selectedOption)}
-                            className="text-zinc-400 hover:text-red-500 transition-colors absolute top-3 right-3 opacity-0 group-hover:opacity-100 md:opacity-100"
+                            className="text-zinc-400 hover:text-red-500 transition-colors absolute top-3 right-3"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
