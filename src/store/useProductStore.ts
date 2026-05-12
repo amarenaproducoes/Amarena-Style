@@ -264,6 +264,8 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   },
 
   addProduct: async (product) => {
+    const initialQty = Number(product.initialStock || 0);
+    
     // Prepara o registro para o Supabase
     const productRecord = {
       id: product.id,
@@ -285,18 +287,43 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       isActive: product.isActive !== false,
       original_price: product.originalPrice || null,
       label: product.label || null,
-      initial_stock: product.initialStock || 0,
-      current_stock: 0, 
+      initial_stock: initialQty,
+      current_stock: initialQty, // Set it once here
       unit_cost: product.unitCost || null
     };
 
-    set((state) => ({ products: [...state.products, { ...product, currentStock: 0 }] }));
+    // Update state once
+    set((state) => ({ 
+      products: [...state.products, { ...product, currentStock: initialQty, initialStock: initialQty }] 
+    }));
+    
     const { error } = await supabase.from('products').upsert([productRecord]);
     if (error) throw error;
 
-    // Registrar o movimento inicial se houver estoque
-    if ((product.initialStock || 0) > 0) {
-      await get().adjustStock(product.id, 'adjustment', product.initialStock || 0, 'Estoque Inicial');
+    // Registrar o movimento inicial manualmente se houver estoque, 
+    // mas SEM chamar adjustStock para evitar re-calculo e duplicidade no estado local
+    if (initialQty > 0) {
+      const movement = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        product_id: product.id,
+        type: 'adjustment' as const,
+        quantity: initialQty,
+        reason: 'Estoque Inicial',
+        created_at: new Date().toISOString()
+      };
+
+      await supabase.from('inventory_movements').insert([movement]);
+      
+      set(state => ({
+        inventoryMovements: [{
+          id: movement.id,
+          productId: product.id,
+          type: 'adjustment',
+          quantity: initialQty,
+          reason: 'Estoque Inicial',
+          createdAt: movement.created_at
+        }, ...state.inventoryMovements]
+      }));
     }
   },
 
@@ -329,7 +356,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
       product_id: productId,
       type,
-      quantity: type === 'out' ? -Math.abs(quantity) : Math.abs(quantity),
+      quantity: type === 'out' ? -Math.abs(quantity) : (type === 'in' ? Math.abs(quantity) : quantity),
       reason,
       created_at: new Date().toISOString()
     };
