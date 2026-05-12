@@ -615,7 +615,7 @@ export function Admin() {
         }
       }
       
-      const payload: Partial<Product> = {
+      const payload: any = {
         name: productForm.name,
         description: productForm.description,
         price: parseFloat(productForm.price),
@@ -629,14 +629,17 @@ export function Admin() {
         sizeGuide: productForm.sizeGuide || undefined,
         originalPrice: productForm.originalPrice ? parseFloat(productForm.originalPrice) : undefined,
         label: productForm.label || undefined,
-        initialStock: parseInt(productForm.initialStock) || 0,
         unitCost: productForm.unitCost ? parseFloat(productForm.unitCost) : undefined,
-        currentStock: editingId ? undefined : (parseInt(productForm.initialStock) || 0),
         isNew: productForm.isNew,
         isActive: productForm.isActive,
         imageUrl: finalImageUrl, 
         images: allImages
       };
+
+      if (!editingId) {
+        payload.initialStock = parseInt(productForm.initialStock) || 0;
+        payload.currentStock = payload.initialStock;
+      }
 
       // Uniqueness check
       const duplicate = products.find(p => p.id !== editingId && p.referenceCode?.toLowerCase() === productForm.referenceCode.trim().toLowerCase());

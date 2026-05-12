@@ -237,8 +237,15 @@ export const useProductStore = create<ProductStore>((set, get) => ({
   },
 
   updateProduct: async (id, updates) => {
+    // Filter out undefined values to avoid overriding columns with null/default
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, v]) => v !== undefined)
+    );
+
+    if (Object.keys(cleanUpdates).length === 0) return;
+
     // Mapeia camelCase para snake_case do banco de dados
-    const dbUpdates: any = { ...updates };
+    const dbUpdates: any = { ...cleanUpdates };
     if ('originalPrice' in dbUpdates) {
       dbUpdates.original_price = dbUpdates.originalPrice;
       delete dbUpdates.originalPrice;
@@ -257,7 +264,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     }
 
     set((state) => ({
-      products: state.products.map(p => p.id === id ? { ...p, ...updates } : p)
+      products: state.products.map(p => p.id === id ? { ...p, ...cleanUpdates } : p)
     }));
     const { error } = await supabase.from('products').update(dbUpdates).eq('id', id);
     if (error) throw error;
