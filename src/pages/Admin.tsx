@@ -927,7 +927,7 @@ export function Admin() {
 
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white p-6 border border-zinc-100 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                   <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 flex items-center gap-2">
                     <Package size={18} /> Saldo de Produtos
                   </h2>
@@ -936,18 +936,20 @@ export function Admin() {
                     placeholder="Filtrar por nome, código ou departamento..."
                     value={inventorySearch}
                     onChange={e => setInventorySearch(e.target.value)}
-                    className="text-xs border p-2 w-64 outline-none focus:border-wine-800"
+                    className="text-xs border p-2 w-full md:w-64 outline-none focus:border-wine-800"
                   />
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-[11px] text-left">
                     <thead className="bg-zinc-50 border-y border-zinc-100">
                       <tr>
-                        <th className="p-3 uppercase tracking-widest font-bold">Produto</th>
-                        <th className="p-3 uppercase tracking-widest font-bold">Depto</th>
-                        <th className="p-3 uppercase tracking-widest font-bold">Custo</th>
-                        <th className="p-3 uppercase tracking-widest font-bold">Estoque Inicial</th>
-                        <th className="p-3 uppercase tracking-widest font-bold">Saldo Atual</th>
+                        <th className="p-3 uppercase tracking-widest font-bold whitespace-nowrap">Produto</th>
+                        <th className="p-3 uppercase tracking-widest font-bold whitespace-nowrap">Ativo</th>
+                        <th className="p-3 uppercase tracking-widest font-bold whitespace-nowrap">Depto</th>
+                        <th className="p-3 uppercase tracking-widest font-bold whitespace-nowrap">Custo</th>
+                        <th className="p-3 uppercase tracking-widest font-bold whitespace-nowrap">Venda</th>
+                        <th className="p-3 uppercase tracking-widest font-bold whitespace-nowrap">% Lucro</th>
+                        <th className="p-3 uppercase tracking-widest font-bold whitespace-nowrap">Saldo</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
@@ -962,21 +964,35 @@ export function Admin() {
                         })
                         .sort((a, b) => (a.referenceCode || '').localeCompare(b.referenceCode || ''))
                         .map(p => (
-                          <tr key={p.id}>
+                          <tr key={p.id} className="hover:bg-zinc-50/50 transition-colors">
                             <td className="p-3">
-                              <div className="flex items-center gap-2">
-                                <img src={p.imageUrl} className="w-6 h-8 object-cover border" />
-                                <div>
-                                  <p className="font-bold">{p.name}</p>
+                              <div className="flex items-center gap-2 min-w-[140px]">
+                                <img src={p.imageUrl} className="w-6 h-8 object-cover border flex-shrink-0" />
+                                <div className="truncate">
+                                  <p className="font-bold truncate">{p.name}</p>
                                   <p className="text-[9px] text-zinc-400">{p.referenceCode}</p>
                                 </div>
                               </div>
                             </td>
-                            <td className="p-3 text-zinc-500 uppercase tracking-tighter">{p.department || '-'}</td>
-                            <td className="p-3 font-mono">
+                            <td className="p-3">
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${p.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {p.isActive !== false ? 'SIM' : 'NÃO'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-zinc-500 uppercase tracking-tighter whitespace-nowrap">{p.department || '-'}</td>
+                            <td className="p-3 font-mono whitespace-nowrap text-zinc-600">
                               {p.unitCost ? `R$ ${p.unitCost.toFixed(2)}` : '-'}
                             </td>
-                            <td className="p-3 font-mono">{p.initialStock || 0}</td>
+                            <td className="p-3 font-mono whitespace-nowrap text-zinc-900 font-semibold">
+                              R$ {p.price.toFixed(2)}
+                            </td>
+                            <td className="p-3 font-mono whitespace-nowrap">
+                              {p.unitCost && p.unitCost > 0 ? (
+                                <span className="text-zinc-600">
+                                  {((p.price / p.unitCost) * 100).toFixed(0)}%
+                                </span>
+                              ) : '-'}
+                            </td>
                             <td className="p-3">
                               <span className={`font-mono font-bold px-2 py-0.5 rounded-sm ${ (p.currentStock || 0) > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                                 {p.currentStock || 0}
