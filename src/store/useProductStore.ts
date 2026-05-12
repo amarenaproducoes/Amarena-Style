@@ -286,11 +286,11 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       original_price: product.originalPrice || null,
       label: product.label || null,
       initial_stock: product.initialStock || 0,
-      current_stock: product.currentStock ?? product.initialStock ?? 0,
+      current_stock: 0, 
       unit_cost: product.unitCost || null
     };
 
-    set((state) => ({ products: [...state.products, product] }));
+    set((state) => ({ products: [...state.products, { ...product, currentStock: 0 }] }));
     const { error } = await supabase.from('products').upsert([productRecord]);
     if (error) throw error;
 
@@ -343,7 +343,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
         id: movement.id,
         productId,
         type,
-        quantity,
+        quantity: movement.quantity,
         reason,
         createdAt: movement.created_at
       }, ...state.inventoryMovements]
