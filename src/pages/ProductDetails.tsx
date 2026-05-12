@@ -26,39 +26,40 @@ export function ProductDetails() {
   });
   const product = code ? getProductBySlug(code) : undefined;
   const isOutOfStock = isStockSystemEnabled && (product?.currentStock || 0) <= 0;
-  const isActive = product?.isActive !== false && !isOutOfStock;
+  const isInactive = product?.isActive === false;
+  
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const registeredId = useRef<string | null>(null);
   
   useEffect(() => {
-    if (product && isActive && registeredId.current !== product.id) {
+    if (product && registeredId.current !== product.id) {
       registerView(product.id);
       registeredId.current = product.id;
     }
-  }, [product, isActive, registerView]);
+  }, [product, registerView]);
 
   const [selectedOption, setSelectedOption] = useState<string | undefined>(
-    product && isActive ? (product.options ? product.options[0] : undefined) : undefined
+    product ? (product.options ? product.options[0] : undefined) : undefined
   );
   const [selectedColor, setSelectedColor] = useState<string | undefined>(
-    product && isActive ? (product.colors ? product.colors[0] : undefined) : undefined
+    product ? (product.colors ? product.colors[0] : undefined) : undefined
   );
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
-    product && isActive ? (product.sizes ? product.sizes[0] : undefined) : undefined
+    product ? (product.sizes ? product.sizes[0] : undefined) : undefined
   );
   
-  const [selectedImage, setSelectedImage] = useState(product && isActive ? (product.imageUrl || product.images?.[0]) : undefined);
+  const [selectedImage, setSelectedImage] = useState(product ? (product.imageUrl || product.images?.[0]) : undefined);
   
   useEffect(() => {
-    if (product && isActive) {
+    if (product) {
       setSelectedImage(product.imageUrl || product.images?.[0]);
       setSelectedOption(product.options ? product.options[0] : undefined);
       setSelectedColor(product.colors ? product.colors[0] : undefined);
       setSelectedSize(product.sizes ? product.sizes[0] : undefined);
     }
-  }, [product, isActive]);
+  }, [product]);
   
-  if (!product || !isActive) {
+  if (!product) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-4">
         <h2 className="font-serif text-2xl text-zinc-900 mb-4">Produto não encontrado</h2>
@@ -318,9 +319,14 @@ export function ProductDetails() {
 
             <button 
               onClick={handleAddToCart}
-              className="w-full py-4 bg-wine-800 text-white font-sans text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase hover:bg-wine-900 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-wine-800 mb-8 mt-auto"
+              disabled={isOutOfStock || isInactive}
+              className={`w-full py-4 font-sans text-[10px] md:text-xs font-bold tracking-[0.2em] uppercase transition-colors focus:ring-2 focus:ring-offset-2 mb-8 mt-auto
+                ${(isOutOfStock || isInactive)
+                  ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed'
+                  : 'bg-wine-800 text-white hover:bg-wine-900 focus:ring-wine-800'
+                }`}
             >
-              Adicionar à Sacola
+              {isInactive ? 'Produto Indisponível' : (isOutOfStock ? 'Estoque Esgotado' : 'Adicionar à Sacola')}
             </button>
           </div>
         </div>
