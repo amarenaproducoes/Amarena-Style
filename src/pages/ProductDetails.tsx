@@ -52,6 +52,61 @@ export function ProductDetails() {
   const [selectedImage, setSelectedImage] = useState(product ? (product.imageUrl || product.images?.[0]) : undefined);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   
+  // Desktop Hover Zoom State
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Mobile Pinch/Pan State
+  const [zoomScale, setZoomScale] = useState(1);
+  const [lastScale, setLastScale] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (window.innerWidth < 768) return; // Only for desktop
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomPos({ x, y });
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const distance = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      );
+      setLastScale(distance);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const distance = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      );
+      const delta = distance / lastScale;
+      // Allow up to 5x zoom for better detail on mobile
+      const newScale = Math.min(Math.max(zoomScale * delta, 1), 5);
+      setZoomScale(newScale);
+      setLastScale(distance);
+    }
+  };
+
+  const toggleDoubleTapZoom = () => {
+    if (zoomScale > 1) {
+      setZoomScale(1);
+    } else {
+      setZoomScale(2.5);
+    }
+  };
+
+  useEffect(() => {
+    if (!isZoomOpen) {
+      setZoomScale(1);
+    }
+  }, [isZoomOpen]);
+  
   useEffect(() => {
     if (product) {
       setSelectedImage(product.imageUrl || product.images?.[0]);
@@ -164,11 +219,21 @@ export function ProductDetails() {
         <div className="flex flex-col md:flex-row gap-8 lg:gap-16">
           {/* Images */}
           <div className="w-full md:w-1/2">
-            <div className="aspect-[3/4] bg-zinc-100 relative group cursor-zoom-in" onClick={() => setIsZoomOpen(true)}>
+            <div 
+              className="aspect-[3/4] bg-zinc-100 relative group cursor-zoom-in overflow-hidden" 
+              onClick={() => setIsZoomOpen(true)}
+              onMouseMove={handleMouseMove}
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+            >
               <img 
                 src={selectedImage} 
                 alt={product.name} 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-200"
+                style={{
+                  transform: isHovering && window.innerWidth >= 768 ? `scale(2)` : `scale(1.05)`,
+                  transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
+                }}
               />
               <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                 <button 
@@ -464,11 +529,22 @@ export function ProductDetails() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.2 }}
-              className="relative w-full h-full flex items-center justify-center"
+              className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none"
               onClick={(e) => e.stopPropagation()}
+              onDoubleClick={toggleDoubleTapZoom}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              ref={containerRef}
             >
-              <img 
+              <motion.img 
                 src={selectedImage} 
+                drag={zoomScale > 1}
+                dragElastic={0.1}
+                // Calculate constraints to allow viewing the full zoomed image
+                dragConstraints={zoomScale > 1 ? { left: -600 * zoomScale, right: 600 * zoomScale, top: -800 * zoomScale, bottom: 800 * zoomScale } : { left: 0, right: 0, top: 0, bottom: 0 }}
+                style={{ 
+                  scale: zoomScale,
+                }}
                 className="max-w-full max-h-full md:max-h-[90vh] object-contain shadow-2xl"
                 alt="Product Zoom"
                 loading="eager"
