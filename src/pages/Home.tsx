@@ -109,7 +109,7 @@ export function Home() {
     displayProducts = allProducts.filter(p => {
       if (activeFilter.isNew && !p.isNew) return false;
       if (activeFilter.department && p.department !== activeFilter.department) return false;
-      if (activeFilter.category && p.category !== activeFilter.category) return false;
+      if (activeFilter.category && p.category !== activeFilter.category && !p.categories?.includes(activeFilter.category)) return false;
       return true;
     });
   }

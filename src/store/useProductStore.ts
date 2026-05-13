@@ -172,7 +172,8 @@ export const useProductStore = create<ProductStore>((set, get) => ({
           initialStock: p.initial_stock,
           currentStock: p.current_stock,
           unitCost: p.unit_cost,
-          label: p.label // Usa a coluna 'label' diretamente
+          label: p.label,
+          categories: p.categories || (p.category ? [p.category] : [])
         }));
         set({ products: mappedProducts as Product[] });
       }
@@ -281,6 +282,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       price: product.price,
       department: product.department || null,
       category: product.category,
+      categories: product.categories || (product.category ? [product.category] : []),
       imageUrl: product.imageUrl,
       images: product.images || [product.imageUrl],
       installments: product.installments || 1,

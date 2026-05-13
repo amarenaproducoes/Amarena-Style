@@ -388,6 +388,7 @@ export function Admin() {
     price: '',
     department: '',
     category: '',
+    categories: [] as string[],
     installments: '1',
     paymentType: 'À vista',
     colors: '', // Comma separated
@@ -531,6 +532,7 @@ export function Admin() {
       price: p.price.toString(),
       department: p.department || '',
       category: p.category,
+      categories: p.categories || [p.category],
       installments: p.installments?.toString() || '1',
       paymentType: p.paymentType || 'À vista',
       colors: p.colors?.join(', ') || '',
@@ -559,6 +561,7 @@ export function Admin() {
       price: '', 
       department: '', 
       category: '', 
+      categories: [],
       installments: '1', 
       paymentType: 'À vista', 
       colors: '', 
@@ -620,7 +623,8 @@ export function Admin() {
         description: productForm.description,
         price: parseFloat(productForm.price),
         department: productForm.department,
-        category: productForm.category,
+        category: productForm.categories[0] || productForm.category,
+        categories: productForm.categories,
         installments: parseInt(productForm.installments) || 1,
         paymentType: productForm.paymentType,
         colors: productForm.colors.split(',').map(s => s.trim()).filter(Boolean),
@@ -1940,7 +1944,7 @@ export function Admin() {
                           </div>
                         </td>
                         <td className="py-4 px-4 text-xs text-zinc-500 uppercase tracking-wider">
-                          {p.department} › {p.category}
+                          {p.department} › {p.categories && p.categories.length > 0 ? p.categories.join(', ') : p.category}
                         </td>
                         <td className="py-4 px-4 font-mono font-bold text-zinc-700">
                           R$ {p.price.toFixed(2)}
@@ -2036,21 +2040,48 @@ export function Admin() {
                 </div>
               )}
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Departamento</label>
-                  <select required value={productForm.department} onChange={e => setProductForm({...productForm, department: e.target.value, category: ''})} className="w-full border p-2 text-sm outline-none">
+                  <select required value={productForm.department} onChange={e => setProductForm({...productForm, department: e.target.value, category: '', categories: []})} className="w-full border p-2 text-sm outline-none">
                     <option value="">Selecione...</option>
                     {departments.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-1">Categoria</label>
-                  <select required value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} className="w-full border p-2 text-sm outline-none">
-                    <option value="">Selecione...</option>
-                    {selectedDeptCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
+                
+                {productForm.department && (
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-2">Categorias (Selecione uma ou mais)</label>
+                    <div className="grid grid-cols-2 gap-2 border p-3 max-h-40 overflow-y-auto bg-zinc-50/50">
+                      {selectedDeptCategories.map(c => (
+                        <label key={c} className="flex items-center gap-2 cursor-pointer group">
+                          <input 
+                            type="checkbox" 
+                            checked={productForm.categories.includes(c)}
+                            onChange={e => {
+                              const newCategories = e.target.checked 
+                                ? [...productForm.categories, c]
+                                : productForm.categories.filter(cat => cat !== c);
+                              setProductForm({
+                                ...productForm, 
+                                categories: newCategories,
+                                category: newCategories[0] || '' // Mantém compatibilidade com o campo único
+                              });
+                            }}
+                            className="w-4 h-4 text-wine-800 border-zinc-300 focus:ring-wine-800"
+                          />
+                          <span className="text-[11px] uppercase tracking-tight text-zinc-600 group-hover:text-wine-800 transition-colors">{c}</span>
+                        </label>
+                      ))}
+                      {selectedDeptCategories.length === 0 && (
+                        <p className="col-span-2 text-[10px] text-zinc-400 italic">Nenhuma categoria cadastrada para este departamento.</p>
+                      )}
+                    </div>
+                    {productForm.categories.length === 0 && (
+                      <p className="text-[10px] text-red-500 mt-1">* Selecione pelo menos uma categoria.</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -2175,7 +2206,7 @@ export function Admin() {
                       {p.isActive === false && <span className="text-[9px] bg-zinc-200 text-zinc-600 px-1.5 py-0.5 font-bold uppercase tracking-widest">Inativo</span>}
                     </div>
                     <h4 className="font-semibold text-sm truncate text-zinc-900 mb-1">{p.name}</h4>
-                    <p className="text-[11px] text-zinc-500 truncate">{p.department} › {p.category}</p>
+                    <p className="text-[11px] text-zinc-500 truncate">{p.department} › {p.categories && p.categories.length > 0 ? p.categories.join(', ') : p.category}</p>
                     <div className="mt-2 font-mono font-bold text-sm text-wine-800">
                       R$ {p.price.toFixed(2)}
                     </div>

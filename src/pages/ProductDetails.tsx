@@ -153,7 +153,13 @@ export function ProductDetails() {
     addItem(product, options.join(' | '));
   };
 
-  const relatedProducts = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const relatedProducts = allProducts.filter(p => {
+    if (p.id === product.id) return false;
+    // Check if they share at least one category
+    const pCats = p.categories && p.categories.length > 0 ? p.categories : [p.category];
+    const prodCats = product.categories && product.categories.length > 0 ? product.categories : [product.category];
+    return pCats.some(cat => prodCats.includes(cat));
+  }).slice(0, 4);
 
   const imagesList = product.images && product.images.length > 0 ? product.images : [product.imageUrl];
 

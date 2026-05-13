@@ -14,6 +14,7 @@ export interface Product {
   images?: string[]; // Up to 8 images
   department?: string; // e.g. Acessórios
   category: string; // e.g. Brincos
+  categories?: string[]; // Multiple categories support
   installments?: number; // Installments count (e.g. 12)
   paymentType?: string; // 'credit', 'pix', etc
   options?: string[];
