@@ -239,24 +239,35 @@ export function CartDrawer() {
                       )}
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between bg-green-50 border border-green-100 p-2 rounded-sm">
-                      <div className="flex items-center gap-2">
-                        <Ticket className="w-4 h-4 text-green-600" />
-                        <div>
-                          <p className="text-[10px] font-bold text-green-700 uppercase tracking-widest">
-                            Cupom: {appliedCoupon.code}
-                          </p>
-                          <p className="text-[9px] text-green-600">
-                            Desconto aplicado: {appliedCoupon.discount_value ? formatPrice(appliedCoupon.discount_value) : `${appliedCoupon.discount_percent}%`}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between bg-green-50 border border-green-100 p-2 rounded-sm">
+                        <div className="flex items-center gap-2">
+                          <Ticket className="w-4 h-4 text-green-600" />
+                          <div>
+                            <p className="text-[10px] font-bold text-green-700 uppercase tracking-widest">
+                              Cupom: {appliedCoupon.code}
+                            </p>
+                            <p className="text-[9px] text-green-600">
+                              Desconto aplicado: {appliedCoupon.discount_value ? formatPrice(appliedCoupon.discount_value) : `${appliedCoupon.discount_percent}%`}
+                            </p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={removeCoupon}
+                          className="text-green-700 hover:text-green-900"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {appliedCoupon.discount_value && appliedCoupon.discount_value > totalPrice && (
+                        <div className="bg-amber-50 border border-amber-100 p-3 flex gap-3">
+                          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                          <p className="text-[10px] leading-relaxed text-amber-700">
+                            O Voucher Inserido só pode ser utilizado uma vez. Você ainda tem <span className="font-bold">{formatPrice(appliedCoupon.discount_value - totalPrice)}</span> reais de desconto para aproveitar em nosso site. Ao seguir com a compra, o valor restante não poderá ser resgatado posteriormente.
                           </p>
                         </div>
-                      </div>
-                      <button 
-                        onClick={removeCoupon}
-                        className="text-green-700 hover:text-green-900"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      )}
                     </div>
                   )}
                 </div>

@@ -131,7 +131,7 @@ export const useCartStore = create<CartStore>()(
 
         return {
           ...totals,
-          discountAmount,
+          discountAmount: Math.min(totals.totalPrice, discountAmount),
           finalPrice: Math.max(0, totals.totalPrice - discountAmount)
         };
       },

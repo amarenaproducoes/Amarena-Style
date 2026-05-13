@@ -40,6 +40,7 @@ export function Admin() {
   });
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [inventorySearch, setInventorySearch] = useState('');
+  const [stockFilter, setStockFilter] = useState<'all' | 'positive' | 'zero'>('all');
 
   const [announcementForm, setAnnouncementForm] = useState({
     text: '',
@@ -935,17 +936,39 @@ export function Admin() {
                   <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 flex items-center gap-2">
                     <Package size={18} /> Saldo de Produtos
                   </h2>
-                  <input 
-                    type="text"
-                    placeholder="Filtrar por nome, código ou departamento..."
-                    value={inventorySearch}
-                    onChange={e => setInventorySearch(e.target.value)}
-                    className="text-xs border p-2 w-full md:w-64 outline-none focus:border-wine-800"
-                  />
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                    <input 
+                      type="text"
+                      placeholder="Filtrar por nome, código ou departamento..."
+                      value={inventorySearch}
+                      onChange={e => setInventorySearch(e.target.value)}
+                      className="text-xs border p-2 w-full md:w-64 outline-none focus:border-wine-800"
+                    />
+                    <div className="flex bg-zinc-100 p-0.5 rounded-sm">
+                      <button 
+                        onClick={() => setStockFilter('all')}
+                        className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-colors ${stockFilter === 'all' ? 'bg-white text-wine-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      >
+                        Todos
+                      </button>
+                      <button 
+                        onClick={() => setStockFilter('positive')}
+                        className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-colors ${stockFilter === 'positive' ? 'bg-white text-wine-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      >
+                        Com Saldo
+                      </button>
+                      <button 
+                        onClick={() => setStockFilter('zero')}
+                        className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest transition-colors ${stockFilter === 'zero' ? 'bg-white text-wine-800 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      >
+                        Sem Saldo
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[11px] text-left">
-                    <thead className="bg-zinc-50 border-y border-zinc-100">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto border border-zinc-100">
+                  <table className="w-full text-[11px] text-left border-collapse">
+                    <thead className="sticky top-0 bg-zinc-50 border-b border-zinc-100 z-10">
                       <tr>
                         <th className="p-3 uppercase tracking-widest font-bold whitespace-nowrap">Produto</th>
                         <th className="p-3 uppercase tracking-widest font-bold whitespace-nowrap">Ativo</th>
@@ -960,11 +983,18 @@ export function Admin() {
                       {products
                         .filter(p => {
                           const query = inventorySearch.toLowerCase();
-                          return (
+                          const matchesSearch = (
                             p.name.toLowerCase().includes(query) || 
                             p.referenceCode?.toLowerCase().includes(query) ||
                             (p.department || '').toLowerCase().includes(query)
                           );
+                          
+                          if (!matchesSearch) return false;
+                          
+                          if (stockFilter === 'positive') return (p.currentStock || 0) > 0;
+                          if (stockFilter === 'zero') return (p.currentStock || 0) <= 0;
+                          
+                          return true;
                         })
                         .sort((a, b) => (a.referenceCode || '').localeCompare(b.referenceCode || ''))
                         .map(p => (
@@ -1018,6 +1048,7 @@ export function Admin() {
                     <thead className="sticky top-0 bg-zinc-50 border-b border-zinc-100 z-10">
                       <tr>
                         <th className="p-3 uppercase tracking-tight font-bold">Data</th>
+                        <th className="p-3 uppercase tracking-tight font-bold">Cód. Ref.</th>
                         <th className="p-3 uppercase tracking-tight font-bold">Produto</th>
                         <th className="p-3 uppercase tracking-tight font-bold">Tipo</th>
                         <th className="p-3 uppercase tracking-tight font-bold">Qtde</th>
@@ -1030,6 +1061,7 @@ export function Admin() {
                         return (
                           <tr key={m.id}>
                             <td className="p-3 text-zinc-400 whitespace-nowrap">{new Date(m.createdAt).toLocaleString('pt-BR')}</td>
+                            <td className="p-3 font-mono text-zinc-500 whitespace-nowrap">{p?.referenceCode || '-'}</td>
                             <td className="p-3">
                               <p className="font-bold truncate max-w-[150px]">{p?.name || 'Deletado'}</p>
                             </td>
