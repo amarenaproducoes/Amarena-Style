@@ -1,9 +1,10 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useCartStore } from '../store/useCartStore';
 import { useProductStore } from '../store/useProductStore';
 import { formatPrice } from '../lib/utils';
-import { ChevronRight, Heart, Share2, Ruler, X } from 'lucide-react';
+import { ChevronRight, Heart, Share2, Ruler, X, Loader2 } from 'lucide-react';
 import { ProductCard } from '../components/product/ProductCard';
 
 import { slugify } from '../utils/slugify';
@@ -49,6 +50,7 @@ export function ProductDetails() {
   );
   
   const [selectedImage, setSelectedImage] = useState(product ? (product.imageUrl || product.images?.[0]) : undefined);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
   
   useEffect(() => {
     if (product) {
@@ -162,13 +164,13 @@ export function ProductDetails() {
         <div className="flex flex-col md:flex-row gap-8 lg:gap-16">
           {/* Images */}
           <div className="w-full md:w-1/2">
-            <div className="aspect-[3/4] bg-zinc-100 relative group">
+            <div className="aspect-[3/4] bg-zinc-100 relative group cursor-zoom-in" onClick={() => setIsZoomOpen(true)}>
               <img 
                 src={selectedImage} 
                 alt={product.name} 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-              <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                 <button 
                   onClick={() => product && toggleFavorite(product.id)}
                   className={`p-2 rounded-full shadow-sm transition-colors ${
@@ -440,6 +442,41 @@ export function ProductDetails() {
           </div>
         </section>
       )}
+
+      {/* Image Zoom Modal */}
+      <AnimatePresence>
+        {isZoomOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black z-[60] flex items-center justify-center p-0 md:p-8"
+            onClick={() => setIsZoomOpen(false)}
+          >
+            <button 
+              className="absolute top-4 right-4 text-white bg-black/40 p-3 rounded-full z-[80] backdrop-blur-sm"
+              onClick={() => setIsZoomOpen(false)}
+            >
+              <X size={24} />
+            </button>
+
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full h-full flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img 
+                src={selectedImage} 
+                className="max-w-full max-h-full md:max-h-[90vh] object-contain shadow-2xl"
+                alt="Product Zoom"
+                loading="eager"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
