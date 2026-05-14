@@ -60,6 +60,16 @@ function Layout({ children }: { children: React.ReactNode }) {
             if (!isExpired && isAvailable) {
               applyCoupon(data);
               setWelcomeCoupon(data.code);
+              
+              // Increment access count
+              supabase
+                .from('coupons')
+                .update({ access_count: (data.access_count || 0) + 1 })
+                .eq('id', data.id)
+                .then(({ error }) => {
+                  if (error) console.error('Error incrementing access count:', error);
+                });
+
               // Clean up URL
               const newParams = new URLSearchParams(location.search);
               newParams.delete('cupom');

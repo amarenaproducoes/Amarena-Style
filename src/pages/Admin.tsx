@@ -1192,6 +1192,9 @@ export function Admin() {
                       <div className="text-[10px] text-zinc-400 space-x-3">
                         <span>Validade: {new Date(c.expiration_date).toLocaleString('pt-BR')}</span>
                         <span>Uso: {c.qtde_utilizada} / {c.qtde_disponivel}</span>
+                        {c.access_count !== undefined && (
+                          <span className="text-wine-800 font-bold">Acessos: {c.access_count || 0}</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
