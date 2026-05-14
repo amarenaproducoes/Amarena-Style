@@ -13,8 +13,10 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfUse } from './pages/TermsOfUse';
 import { useProductStore } from './store/useProductStore';
 import { useAuthStore } from './store/useAuthStore';
+import { useCartStore } from './store/useCartStore';
+import { supabase } from './lib/supabase';
 import { ADMIN_SECRET_PATH } from './constants';
-import { Instagram, MessageCircle } from 'lucide-react';
+import { Instagram, MessageCircle, X } from 'lucide-react';
 
 function AdminGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -30,11 +32,48 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { init, initialized, socialConfig } = useProductStore();
+  const { applyCoupon, appliedCoupon } = useCartStore();
   const location = useLocation();
+  const [welcomeCoupon, setWelcomeCoupon] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const couponCode = params.get('cupom');
+    
+    if (couponCode && !appliedCoupon) {
+      const fetchAndApply = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('coupons')
+            .select('*')
+            .eq('code', couponCode.toUpperCase())
+            .single();
+
+          if (data && !error) {
+            const isExpired = new Date(data.expiration_date) < new Date();
+            const isAvailable = data.qtde_utilizada < data.qtde_disponivel;
+
+            if (!isExpired && isAvailable) {
+              applyCoupon(data);
+              setWelcomeCoupon(data.code);
+              // Clean up URL
+              const newParams = new URLSearchParams(location.search);
+              newParams.delete('cupom');
+              const newSearch = newParams.toString() ? `?${newParams.toString()}` : '';
+              window.history.replaceState({}, '', `${location.pathname}${newSearch}`);
+            }
+          }
+        } catch (err) {
+          console.error('Error applying coupon from URL:', err);
+        }
+      };
+      fetchAndApply();
+    }
+  }, [location.search, applyCoupon, appliedCoupon, location.pathname]);
 
   useEffect(() => {
     init();
@@ -52,6 +91,19 @@ function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col bg-white border-0 md:border-8 border-zinc-100/50">
       <Navbar onOpenMenu={() => setIsMenuOpen(true)} />
       <AnnouncementBar />
+      
+      {welcomeCoupon && (
+        <div className="bg-wine-800 text-white py-3 px-4 text-center text-[10px] uppercase tracking-[0.2em] relative animate-fade-in group">
+          <span>Boas-vindas! O cupom <span className="font-bold">{welcomeCoupon}</span> foi aplicado à sua sacola. Aproveite!</span>
+          <button 
+            onClick={() => setWelcomeCoupon(null)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <MenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       <CartDrawer />
       
@@ -63,7 +115,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex gap-8 justify-center">
           <Link to="/privacidade" className="cursor-pointer hover:text-zinc-600 transition-colors">Privacidade</Link>
           <Link to="/termos" className="cursor-pointer hover:text-zinc-600 transition-colors">Termos</Link>
-          <a href={`https://wa.me/${socialConfig?.whatsapp || '5511933014850'}?text=Ol%C3%A1.%20Estou%20com%20d%C3%BAvidas%20no%20site%20do%20Amarena%20Style.%20Poderia%20me%20Ajudar%3F`} target="_blank" rel="noopener noreferrer" className="cursor-pointer hover:text-zinc-600 transition-colors">Ajuda</a>
+          <a href={`https://wa.me/${socialConfig?.whatsapp || '5511927028287'}?text=Ol%C3%A1.%20Estou%20com%20d%C3%BAvidas%20no%20site%20do%20Amarena%20Style.%20Poderia%20me%20Ajudar%3F`} target="_blank" rel="noopener noreferrer" className="cursor-pointer hover:text-zinc-600 transition-colors">Ajuda</a>
         </div>
 
         <div className="flex gap-6 items-center">

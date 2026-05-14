@@ -5,8 +5,9 @@ import { formatPrice } from '../lib/utils';
 import { Product } from '../store/useCartStore';
 import { uploadImageToSupabase } from '../lib/storage';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, Edit2, X, Upload, LogOut, Package, History, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Upload, LogOut, Package, History, Settings as SettingsIcon, ShieldCheck, Link as LinkIcon, Check, Copy, Ticket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { slugify } from '../utils/slugify';
 
 export function Admin() {
   const { 
@@ -29,7 +30,38 @@ export function Admin() {
     }
   };
   
-  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales' | 'analytics' | 'inventory'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'settings' | 'banners' | 'sizeGuides' | 'ranking' | 'coupons' | 'sales' | 'analytics' | 'inventory' | 'links'>('products');
+  
+  // Link Central State
+  const [linkCouponId, setLinkCouponId] = useState<string>('');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [selectedDeptNames, setSelectedDeptNames] = useState<string[]>([]);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
+
+  const handleCopyLinks = (type: 'products' | 'departments') => {
+    const baseUrl = window.location.origin;
+    const coupon = coupons.find(c => c.id === linkCouponId);
+    const couponParam = coupon ? `?cupom=${coupon.code}` : '';
+    let text = '';
+
+    if (type === 'products') {
+      const activeProducts = products.filter(p => p.isActive !== false);
+      const selectedProducts = activeProducts.filter(p => selectedProductIds.includes(p.id));
+      text = selectedProducts.map(p => `${baseUrl}/produto/${p.referenceCode}${couponParam}`).join('\n');
+    } else {
+      text = selectedDeptNames.map(dept => `${baseUrl}/${slugify(dept)}${couponParam}`).join('\n');
+    }
+
+    if (!text) {
+      alert('Selecione pelo menos um item para copiar.');
+      return;
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyStatus(type);
+      setTimeout(() => setCopyStatus(null), 2000);
+    });
+  };
 
   // Inventory state
   const [stockAdjustment, setStockAdjustment] = useState({
@@ -815,6 +847,15 @@ export function Admin() {
         >
           Estoque
         </button>
+        <button 
+          className={`py-2 px-4 md:px-6 font-semibold text-sm uppercase tracking-wider whitespace-nowrap ${activeTab === 'links' ? 'border-b-2 border-wine-800 text-wine-800' : 'text-zinc-500'}`}
+          onClick={() => {
+            setActiveTab('links');
+            if (coupons.length === 0) fetchCoupons();
+          }}
+        >
+          Central de Links
+        </button>
       </div>
 
       {activeTab === 'inventory' && (
@@ -1381,7 +1422,7 @@ export function Admin() {
                     placeholder="5511999999999"
                     className="w-full border p-2 text-sm outline-none focus:border-wine-800"
                   />
-                  <p className="text-[10px] text-zinc-400 mt-1 italic">Somente números, ex: 5511933014850</p>
+                  <p className="text-[10px] text-zinc-400 mt-1 italic">Somente números, ex: 5511927028287</p>
                 </div>
               </div>
               <div className="flex justify-end">
@@ -2266,6 +2307,163 @@ export function Admin() {
                   <p className="text-zinc-400 text-sm italic">Nenhum produto cadastrado no sistema.</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {activeTab === 'links' && (
+        <div className="space-y-8 animate-fade-in">
+          <div className="bg-white p-6 border border-zinc-100 shadow-sm">
+            <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-6 flex items-center gap-2">
+              <Ticket size={18} /> Seletor de Cupom
+            </h2>
+            <p className="text-xs text-zinc-500 mb-4 uppercase tracking-tight">Selecione um cupom para anexar aos links automaticamente:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <button 
+                onClick={() => setLinkCouponId('')}
+                className={`p-3 border text-center transition-all ${linkCouponId === '' ? 'border-wine-800 bg-wine-50 text-wine-800 font-bold' : 'border-zinc-100 text-zinc-400 hover:border-zinc-200'}`}
+              >
+                <div className="text-[10px] uppercase tracking-widest">Nenhum</div>
+              </button>
+              {coupons
+                .filter(c => {
+                  const isExpired = new Date(c.expiration_date) < new Date();
+                  const isAvailable = c.qtde_utilizada < c.qtde_disponivel;
+                  return !isExpired && isAvailable;
+                })
+                .map(c => (
+                <button 
+                  key={c.id}
+                  onClick={() => setLinkCouponId(c.id)}
+                  className={`p-3 border text-center transition-all ${linkCouponId === c.id ? 'border-wine-800 bg-wine-50 text-wine-800 font-bold' : 'border-zinc-100 text-zinc-400 hover:border-zinc-200'}`}
+                >
+                  <div className="text-xs tracking-widest mb-1">{c.code}</div>
+                  <div className="text-[9px] opacity-60">
+                    {c.discount_value ? `R$ ${c.discount_value}` : `${c.discount_percent}%`}
+                  </div>
+                </button>
+              ))}
+              {coupons.filter(c => {
+                const isExpired = new Date(c.expiration_date) < new Date();
+                const isAvailable = c.qtde_utilizada < c.qtde_disponivel;
+                return !isExpired && isAvailable;
+              }).length === 0 && (
+                <p className="col-span-full text-zinc-400 text-[10px] italic">Nenhum cupom válido ou disponível encontrado. Crie um na aba "Cupons" primeiro.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white p-6 border border-zinc-100 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 flex items-center gap-2">
+                  <Package size={18} /> Links de Produtos
+                </h2>
+                <button 
+                  onClick={() => handleCopyLinks('products')}
+                  className="flex items-center gap-2 bg-wine-800 text-white px-4 py-2 text-[10px] uppercase font-bold tracking-widest hover:bg-wine-900 transition-colors"
+                >
+                  {copyStatus === 'products' ? <Check size={14}/> : <Copy size={14}/>}
+                  {copyStatus === 'products' ? 'Copiado!' : 'Copiar Selecionados'}
+                </button>
+              </div>
+
+              <div className="mb-4 flex items-center gap-2 pb-2 border-b border-zinc-50">
+                <input 
+                  type="checkbox" 
+                  id="select-all-products"
+                  className="w-4 h-4 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
+                  checked={(() => {
+                    const activeProducts = products.filter(p => p.isActive !== false);
+                    return selectedProductIds.length === activeProducts.length && activeProducts.length > 0;
+                  })()}
+                  onChange={(e) => {
+                    const activeProducts = products.filter(p => p.isActive !== false);
+                    if (e.target.checked) setSelectedProductIds(activeProducts.map(p => p.id));
+                    else setSelectedProductIds([]);
+                  }}
+                />
+                <label htmlFor="select-all-products" className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 cursor-pointer">
+                  Selecionar Todos ({products.filter(p => p.isActive !== false).length})
+                </label>
+              </div>
+
+              <div className="max-h-[500px] overflow-y-auto space-y-2 pr-2">
+                {[...products]
+                  .filter(p => p.isActive !== false)
+                  .sort((a, b) => (a.referenceCode || '').localeCompare(b.referenceCode || ''))
+                  .map(p => (
+                    <label key={p.id} className="flex items-center gap-3 p-2 hover:bg-zinc-50 transition-colors cursor-pointer group rounded-sm border border-transparent hover:border-zinc-100">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
+                        checked={selectedProductIds.includes(p.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedProductIds([...selectedProductIds, p.id]);
+                          else setSelectedProductIds(selectedProductIds.filter(id => id !== p.id));
+                        }}
+                      />
+                      <div className="flex gap-2 items-center flex-1 min-w-0">
+                        <img src={p.imageUrl} className="w-8 h-10 object-cover border border-zinc-100" />
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-zinc-900 truncate uppercase">{p.name}</p>
+                          <p className="text-[9px] text-zinc-400 font-mono italic">REF: {p.referenceCode || '-'}</p>
+                        </div>
+                      </div>
+                    </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-6 border border-zinc-100 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 flex items-center gap-2">
+                  <LinkIcon size={18} /> Categorias / Departamentos
+                </h2>
+                <button 
+                  onClick={() => handleCopyLinks('departments')}
+                  className="flex items-center gap-2 bg-wine-800 text-white px-4 py-2 text-[10px] uppercase font-bold tracking-widest hover:bg-wine-900 transition-colors"
+                >
+                  {copyStatus === 'departments' ? <Check size={14}/> : <Copy size={14}/>}
+                  {copyStatus === 'departments' ? 'Copiado!' : 'Copiar Selecionados'}
+                </button>
+              </div>
+
+              <div className="mb-4 flex items-center gap-2 pb-2 border-b border-zinc-50">
+                <input 
+                  type="checkbox" 
+                  id="select-all-depts"
+                  className="w-4 h-4 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
+                  checked={selectedDeptNames.length === departments.length && departments.length > 0}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedDeptNames(departments.map(d => d.name));
+                    else setSelectedDeptNames([]);
+                  }}
+                />
+                <label htmlFor="select-all-depts" className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 cursor-pointer">
+                  Selecionar Todos ({departments.length})
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                {departments.map(dept => (
+                  <label key={dept.name} className="flex items-center gap-3 p-3 hover:bg-zinc-50 transition-colors cursor-pointer group rounded-sm border border-transparent hover:border-zinc-100 bg-zinc-50/30">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
+                      checked={selectedDeptNames.includes(dept.name)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedDeptNames([...selectedDeptNames, dept.name]);
+                        else setSelectedDeptNames(selectedDeptNames.filter(name => name !== dept.name));
+                      }}
+                    />
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-zinc-900 uppercase tracking-widest">{dept.name}</p>
+                      <p className="text-[9px] text-zinc-400">{dept.categories.length} Categorias</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
         </div>

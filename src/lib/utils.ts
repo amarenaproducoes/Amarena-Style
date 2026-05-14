@@ -34,5 +34,5 @@ export function formatWhatsAppMessage(cartItems: any[], total: number, coupon?: 
 
   message += `\n*Total Final: ${formatPrice(total)}*\n`;
   
-  return `https://wa.me/5511933014850?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/5511927028287?text=${encodeURIComponent(message)}`;
 }
