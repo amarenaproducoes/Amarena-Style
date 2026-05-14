@@ -8,10 +8,11 @@ export function Favorites() {
   
   const allProducts = registeredProducts.filter(p => {
     const isActive = p.isActive !== false;
+    const isVisible = !p.isHidden;
     if (isStockSystemEnabled) {
-      return isActive && (p.currentStock || 0) > 0;
+      return isActive && isVisible && (p.currentStock || 0) > 0;
     }
-    return isActive;
+    return isActive && isVisible;
   });
   const favoriteProducts = allProducts.filter(p => favorites.includes(p.id));
 

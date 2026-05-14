@@ -433,7 +433,8 @@ export function Admin() {
     initialStock: '',
     unitCost: '',
     isNew: false,
-    isActive: true
+    isActive: true,
+    isHidden: false
   });
   const [productImagesFiles, setProductImagesFiles] = useState<File[]>([]);
   const [productImagesPreviews, setProductImagesPreviews] = useState<string[]>([]);
@@ -577,7 +578,8 @@ export function Admin() {
       initialStock: p.initialStock?.toString() || '0',
       unitCost: p.unitCost?.toString() || '',
       isNew: p.isNew || false,
-      isActive: p.isActive !== false
+      isActive: p.isActive !== false,
+      isHidden: p.isHidden || false
     });
     setExistingImages(p.images || [p.imageUrl]);
     setCoverImageUrl(p.imageUrl);
@@ -606,7 +608,8 @@ export function Admin() {
       initialStock: '',
       unitCost: '',
       isNew: false,
-      isActive: true
+      isActive: true,
+      isHidden: false
     });
     setExistingImages([]);
     setProductImagesFiles([]);
@@ -669,6 +672,7 @@ export function Admin() {
         unitCost: productForm.unitCost ? parseFloat(productForm.unitCost) : undefined,
         isNew: productForm.isNew,
         isActive: productForm.isActive,
+        isHidden: productForm.isHidden,
         imageUrl: finalImageUrl, 
         images: allImages
       };
@@ -2200,6 +2204,10 @@ export function Admin() {
                     <input type="checkbox" checked={productForm.isActive} onChange={e => setProductForm({...productForm, isActive: e.target.checked})} className="w-4 h-4 text-wine-800" />
                     <span className="text-xs uppercase tracking-widest text-zinc-500">Ativo no site</span>
                   </label>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" checked={productForm.isHidden} onChange={e => setProductForm({...productForm, isHidden: e.target.checked})} className="w-4 h-4 text-wine-800" />
+                    <span className="text-xs uppercase tracking-widest text-zinc-500">Ocultar produto</span>
+                  </label>
                 </div>
 
                 <div>
@@ -2280,6 +2288,7 @@ export function Admin() {
                       <span className="text-[10px] text-zinc-400 font-mono tracking-tighter">{p.referenceCode || 'REF: -'}</span>
                       {p.isNew && <span className="text-[9px] bg-wine-800 text-white px-1.5 py-0.5 font-bold uppercase tracking-widest">New</span>}
                       {p.isActive === false && <span className="text-[9px] bg-zinc-200 text-zinc-600 px-1.5 py-0.5 font-bold uppercase tracking-widest">Inativo</span>}
+                      {p.isHidden && <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 font-bold uppercase tracking-widest">Oculto</span>}
                     </div>
                     <h4 className="font-semibold text-sm truncate text-zinc-900 mb-1">{p.name}</h4>
                     <p className="text-[11px] text-zinc-500 truncate">{p.department} › {p.categories && p.categories.length > 0 ? p.categories.join(', ') : p.category}</p>

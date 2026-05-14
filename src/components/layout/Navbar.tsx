@@ -39,7 +39,7 @@ export function Navbar({ onOpenMenu }: NavbarProps) {
     // Debounce effect logic (simple version)
     const timeoutId = setTimeout(() => {
       const results = allProducts.filter(p => 
-        (p.isActive !== false) && (
+        (p.isActive !== false && !p.isHidden) && (
           p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
           p.category.toLowerCase().includes(searchQuery.toLowerCase())
         )

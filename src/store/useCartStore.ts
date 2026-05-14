@@ -24,6 +24,7 @@ export interface Product {
   sizeGuide?: 'male' | 'female';
   isNew?: boolean;
   isActive?: boolean;
+  isHidden?: boolean;
   initialStock?: number;
   currentStock?: number;
   unitCost?: number;

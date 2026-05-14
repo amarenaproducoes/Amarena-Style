@@ -18,9 +18,10 @@ export function Home() {
   
   const activeBanners = banners.filter(b => {
     if (!b.active) return false;
-    if (isStockSystemEnabled && b.productId) {
-      const product = registeredProducts.find(p => p.id === b.productId);
-      if (product && (product.currentStock || 0) <= 0) return false;
+    const product = b.productId ? registeredProducts.find(p => p.id === b.productId) : null;
+    if (product) {
+      if (product.isHidden) return false;
+      if (isStockSystemEnabled && (product.currentStock || 0) <= 0) return false;
     }
     return true;
   });
@@ -74,10 +75,11 @@ export function Home() {
   // Filter registered products
   const allProducts = registeredProducts.filter(p => {
     const isActive = p.isActive !== false;
+    const isVisible = !p.isHidden;
     if (isStockSystemEnabled) {
-      return isActive && (p.currentStock || 0) > 0;
+      return isActive && isVisible && (p.currentStock || 0) > 0;
     }
-    return isActive;
+    return isActive && isVisible;
   });
   
   // Logic for sorting and pinning

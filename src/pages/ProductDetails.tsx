@@ -20,10 +20,11 @@ export function ProductDetails() {
   
   const allProducts = registeredProducts.filter(p => {
     const isActive = p.isActive !== false;
+    const isVisible = !p.isHidden;
     if (isStockSystemEnabled) {
-      return isActive && (p.currentStock || 0) > 0;
+      return isActive && isVisible && (p.currentStock || 0) > 0;
     }
-    return isActive;
+    return isActive && isVisible;
   });
   const product = code ? getProductBySlug(code) : undefined;
   const isOutOfStock = isStockSystemEnabled && (product?.currentStock || 0) <= 0;
@@ -173,18 +174,36 @@ export function ProductDetails() {
   const handleShare = async () => {
     const shareData = {
       title: product.name,
-      text: 'Olha que demais esse produto que vi no Site do Amarena Style!',
+      text: `Olha que demais esse produto que vi na Amarena Style: ${product.name}`,
       url: window.location.href,
     };
+
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (err) {
-        console.error('Error sharing:', err);
+      } catch (err: any) {
+        // Ignora se o usuário cancelou o compartilhamento (AbortError)
+        if (err?.name === 'AbortError') {
+          return;
+        }
+        
+        // Em outros erros, tenta apenas copiar o link
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          // Opcional: Feedback visual de cópia
+        } catch (copyErr) {
+          console.error('Falha ao compartilhar:', err);
+        }
       }
     } else {
-      const waLink = `https://wa.me/?text=${encodeURIComponent(shareData.text + ' ' + shareData.url)}`;
-      window.open(waLink, '_blank');
+      // Se não houver navigator.share, abre WhatsApp ou copia link
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copiado!');
+      } catch (err) {
+        const waLink = `https://wa.me/?text=${encodeURIComponent(shareData.text + ' ' + shareData.url)}`;
+        window.open(waLink, '_blank');
+      }
     }
   };
 
@@ -241,19 +260,19 @@ export function ProductDetails() {
                   transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
                 }}
               />
-              <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+              <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10" onClick={(e) => e.stopPropagation()}>
                 <button 
                   onClick={() => product && toggleFavorite(product.id)}
                   className={`p-2 rounded-full shadow-sm transition-colors ${
                     product && favorites.includes(product.id) 
                       ? 'bg-wine-50 text-wine-800' 
-                      : 'bg-white text-zinc-600 hover:text-wine-800'
+                      : 'bg-white/80 backdrop-blur-sm md:bg-white text-zinc-600 hover:text-wine-800'
                   }`}
                   aria-label="Adicionar aos favoritos"
                 >
                   <Heart className={`w-5 h-5 ${product && favorites.includes(product.id) ? 'fill-current' : ''}`} />
                 </button>
-                <button onClick={handleShare} className="p-2 bg-white rounded-full text-zinc-600 hover:text-wine-800 shadow-sm">
+                <button onClick={handleShare} className="p-2 bg-white/80 backdrop-blur-sm md:bg-white rounded-full text-zinc-600 hover:text-wine-800 shadow-sm">
                   <Share2 className="w-5 h-5" />
                 </button>
               </div>

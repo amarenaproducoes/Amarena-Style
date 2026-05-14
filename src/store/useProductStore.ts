@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Product } from './useCartStore';
 import { supabase } from '../lib/supabase';
 
@@ -82,31 +83,33 @@ interface ProductStore {
   getProductBySlug: (slug: string) => Product | undefined;
 }
 
-export const useProductStore = create<ProductStore>((set, get) => ({
-  products: [],
-  logoUrl: null,
-  departments: [],
-  banners: [],
-  sizeGuides: [],
-  announcement: null,
-  socialConfig: null,
-  isStockSystemEnabled: true,
-  inventoryMovements: [],
-  initialized: false,
-  activeFilter: null,
-  favorites: [],
-  pinnedProductIds: [],
-  
-  toggleFavorite: (id: string) => {
-    set((state) => {
-      const isFavorite = state.favorites.includes(id);
-      return {
-        favorites: isFavorite 
-          ? state.favorites.filter(favId => favId !== id)
-          : [...state.favorites, id]
-      };
-    });
-  },
+export const useProductStore = create<ProductStore>()(
+  persist(
+    (set, get) => ({
+      products: [],
+      logoUrl: null,
+      departments: [],
+      banners: [],
+      sizeGuides: [],
+      announcement: null,
+      socialConfig: null,
+      isStockSystemEnabled: true,
+      inventoryMovements: [],
+      initialized: false,
+      activeFilter: null,
+      favorites: [],
+      pinnedProductIds: [],
+      
+      toggleFavorite: (id: string) => {
+        set((state) => {
+          const isFavorite = state.favorites.includes(id);
+          return {
+            favorites: isFavorite 
+              ? state.favorites.filter(favId => favId !== id)
+              : [...state.favorites, id]
+          };
+        });
+      },
 
   init: async () => {
     if (get().initialized) return;
@@ -172,6 +175,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
           initialStock: p.initial_stock,
           currentStock: p.current_stock,
           unitCost: p.unit_cost,
+          isHidden: p.is_hidden || false,
           label: p.label,
           categories: p.categories || (p.category ? [p.category] : [])
         }));
@@ -263,6 +267,10 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       dbUpdates.unit_cost = dbUpdates.unitCost;
       delete dbUpdates.unitCost;
     }
+    if ('isHidden' in dbUpdates) {
+      dbUpdates.is_hidden = dbUpdates.isHidden;
+      delete dbUpdates.isHidden;
+    }
 
     set((state) => ({
       products: state.products.map(p => p.id === id ? { ...p, ...cleanUpdates } : p)
@@ -294,6 +302,7 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       sizeGuide: product.sizeGuide || null,
       isNew: product.isNew || false,
       isActive: product.isActive !== false,
+      is_hidden: product.isHidden || false,
       original_price: product.originalPrice || null,
       label: product.label || null,
       initial_stock: initialQty,
@@ -506,4 +515,10 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       console.error('Failed to redeem coupon:', err);
     }
   }
-}));
+}),
+{
+  name: 'amarena-favorites-v2',
+  partialize: (state) => ({ favorites: state.favorites }),
+}
+)
+);
