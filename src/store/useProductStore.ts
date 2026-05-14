@@ -76,8 +76,10 @@ interface ProductStore {
   updateSizeGuide: (guide: SizeGuide) => Promise<void>;
   toggleFavorite: (id: string) => void;
   registerView: (productId: string) => Promise<void>;
+  registerCartClick: (productId: string) => Promise<void>;
   setPinnedProducts: (ids: string[]) => Promise<void>;
   getProductViewsInRange: (days: number) => Promise<{ [key: string]: number }>;
+  getCartClicksInRange: (days: number) => Promise<{ [key: string]: number }>;
   validateCoupon: (code: string) => Promise<{ success: boolean, message?: string, coupon?: any }>;
   redeemCoupon: (coupon: any) => Promise<void>;
   getProductBySlug: (slug: string) => Product | undefined;
@@ -416,6 +418,14 @@ export const useProductStore = create<ProductStore>()(
     }
   },
 
+  registerCartClick: async (productId) => {
+    try {
+      await supabase.from('product_clicks').insert([{ product_id: productId }]);
+    } catch (error) {
+      console.error('Failed to register cart click:', error);
+    }
+  },
+
   getProductBySlug: (slug: string) => {
     const products = get().products;
     return products.find(p => p.referenceCode === slug || p.id === slug);
@@ -461,6 +471,36 @@ export const useProductStore = create<ProductStore>()(
       return counts;
     } catch (error) {
       console.error('Failed to get product views:', error);
+      return {};
+    }
+  },
+
+  getCartClicksInRange: async (days) => {
+    try {
+      let query = supabase.from('product_clicks').select('product_id');
+      
+      const now = new Date();
+      if (days > 0) {
+        const startDate = new Date();
+        startDate.setDate(now.getDate() - days);
+        query = query.gte('created_at', startDate.toISOString());
+      } else if (days === 0) {
+        // Current Month
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        query = query.gte('created_at', startDate.toISOString());
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      const counts: { [key: string]: number } = {};
+      data?.forEach(click => {
+        counts[click.product_id] = (counts[click.product_id] || 0) + 1;
+      });
+      
+      return counts;
+    } catch (error) {
+      console.error('Failed to get cart clicks:', error);
       return {};
     }
   },

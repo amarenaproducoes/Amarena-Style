@@ -14,6 +14,7 @@ export function Admin() {
     logoUrl, setLogoUrl, products, addProduct, updateProduct, removeProduct, 
     departments, setDepartments, banners, setBanners, sizeGuides, updateSizeGuide,
     pinnedProductIds, setPinnedProducts, getProductViewsInRange,
+    getCartClicksInRange,
     announcement, setAnnouncement,
     socialConfig, setSocialConfig,
     isStockSystemEnabled, setStockSystemEnabled,
@@ -210,6 +211,13 @@ export function Admin() {
     }
   }>({});
   const [isLoadingSales, setIsLoadingSales] = useState(false);
+  const [conversionData, setConversionData] = useState<{
+    [key: string]: {
+      clicks7: number;
+      clicksMonth: number;
+      clicksTotal: number;
+    }
+  }>({});
 
   const fetchSalesData = async () => {
     setIsLoadingSales(true);
@@ -244,24 +252,51 @@ export function Admin() {
         return stats;
       };
 
-      const [s7, sm, sp] = await Promise.all([
+      const fetchAllTimeSales = async () => {
+        const { data } = await supabase
+          .from('purchase_items')
+          .select('product_id, quantity');
+        
+        const stats: Record<string, { qty: number }> = {};
+        data?.forEach(item => {
+          if (item.product_id) {
+            if (!stats[item.product_id]) stats[item.product_id] = { qty: 0 };
+            stats[item.product_id].qty += item.quantity;
+          }
+        });
+        return stats;
+      };
+
+      const [s7, sm, sp, stotal, c7, cm, ctotal] = await Promise.all([
         fetchRange(sevenDaysAgo),
         fetchRange(firstDayOfMonth),
-        fetchRange(firstDayOfPrevMonth, lastDayOfPrevMonth)
+        fetchRange(firstDayOfPrevMonth, lastDayOfPrevMonth),
+        fetchAllTimeSales(),
+        getCartClicksInRange(7),
+        getCartClicksInRange(0), // Month
+        getCartClicksInRange(-2) // Total
       ]);
 
       const merged: any = {};
+      const conv: any = {};
       products.forEach(p => {
         merged[p.id] = {
           sold7: s7[p.id]?.qty || 0,
           soldMonth: sm[p.id]?.qty || 0,
           soldPrevMonth: sp[p.id]?.qty || 0,
+          soldTotal: stotal[p.id]?.qty || 0,
           rev7: s7[p.id]?.val || 0,
           revMonth: sm[p.id]?.val || 0,
           revPrevMonth: sp[p.id]?.val || 0
         };
+        conv[p.id] = {
+          clicks7: c7[p.id] || 0,
+          clicksMonth: cm[p.id] || 0,
+          clicksTotal: ctotal[p.id] || 0
+        };
       });
       setSalesData(merged);
+      setConversionData(conv);
     } catch (err) {
       console.error('Error fetching sales data:', err);
     } finally {
@@ -361,26 +396,37 @@ export function Admin() {
   const [searchProductQuery, setSearchProductQuery] = useState('');
 
   const filteredAndTotals = React.useMemo(() => {
-    const filtered = products.filter(p => 
-      p.name.toLowerCase().includes(searchProductQuery.toLowerCase()) || 
-      p.referenceCode?.toLowerCase().includes(searchProductQuery.toLowerCase()) ||
-      (p.department || '').toLowerCase().includes(searchProductQuery.toLowerCase())
-    );
+    const filtered = products
+      .filter(p => 
+        p.name.toLowerCase().includes(searchProductQuery.toLowerCase()) || 
+        p.referenceCode?.toLowerCase().includes(searchProductQuery.toLowerCase()) ||
+        (p.department || '').toLowerCase().includes(searchProductQuery.toLowerCase())
+      )
+      .sort((a, b) => (a.referenceCode || '').localeCompare(b.referenceCode || ''));
 
     const totals = filtered.reduce((acc, p) => {
       const pData = salesData[p.id];
+      const pConv = conversionData[p.id];
       return {
         sold7: acc.sold7 + (pData?.sold7 || 0),
         soldMonth: acc.soldMonth + (pData?.soldMonth || 0),
         soldPrevMonth: acc.soldPrevMonth + (pData?.soldPrevMonth || 0),
+        soldTotal: acc.soldTotal + (pData?.soldTotal || 0),
         rev7: acc.rev7 + (pData?.rev7 || 0),
         revMonth: acc.revMonth + (pData?.revMonth || 0),
         revPrevMonth: acc.revPrevMonth + (pData?.revPrevMonth || 0),
+        clicks7: acc.clicks7 + (pConv?.clicks7 || 0),
+        clicksMonth: acc.clicksMonth + (pConv?.clicksMonth || 0),
+        clicksTotal: acc.clicksTotal + (pConv?.clicksTotal || 0),
       };
-    }, { sold7: 0, soldMonth: 0, soldPrevMonth: 0, rev7: 0, revMonth: 0, revPrevMonth: 0 });
+    }, { 
+      sold7: 0, soldMonth: 0, soldPrevMonth: 0, soldTotal: 0, 
+      rev7: 0, revMonth: 0, revPrevMonth: 0,
+      clicks7: 0, clicksMonth: 0, clicksTotal: 0
+    });
 
     return { filtered, totals };
-  }, [products, searchProductQuery, salesData]);
+  }, [products, searchProductQuery, salesData, conversionData]);
 
   // Fetch ranking data
   const fetchRanking = async () => {
@@ -1694,6 +1740,27 @@ export function Admin() {
 
       {activeTab === 'sales' && (
         <div className="space-y-8">
+          <div className="sticky top-0 z-20 bg-wine-50/90 backdrop-blur-sm p-4 border-b border-wine-100 -mx-4 px-4 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shadow-sm">
+            <div>
+              <h2 className="font-sans font-bold uppercase tracking-widest text-xs text-wine-900">Filtro de Relatórios</h2>
+              <p className="text-[10px] text-wine-700 uppercase tracking-tight">Filtre por REF, Nome ou Departamento</p>
+            </div>
+            <div className="relative w-full md:w-96">
+              <input 
+                type="text" 
+                placeholder="Digitar REF, Produto ou Depto..." 
+                value={searchProductQuery}
+                onChange={(e) => setSearchProductQuery(e.target.value)}
+                className="w-full pl-3 pr-10 py-2.5 border border-wine-200 bg-white text-xs uppercase tracking-widest focus:outline-none focus:border-wine-800 focus:ring-1 focus:ring-wine-800/20 shadow-inner"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-wine-300">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -1711,15 +1778,6 @@ export function Admin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    placeholder="Buscar produto..." 
-                    value={searchProductQuery}
-                    onChange={(e) => setSearchProductQuery(e.target.value)}
-                    className="pl-3 pr-10 py-2 border border-zinc-200 text-xs uppercase tracking-widest focus:outline-none focus:border-wine-800 w-full md:w-64"
-                  />
-                </div>
               </div>
             </div>
             
@@ -1788,9 +1846,16 @@ export function Admin() {
           </div>
 
           <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-zinc-100">
-              <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800">Controle de Faturamento por Produto</h2>
-              <p className="text-xs text-zinc-400 mt-1 uppercase tracking-tight">Valor total vendido por período</p>
+            <div className="p-6 border-b border-zinc-100 flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800">Controle de Faturamento por Produto</h2>
+                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-tight">Valor total vendido por período</p>
+              </div>
+              {searchProductQuery && (
+                <div className="text-[10px] text-wine-800 bg-wine-50 px-2 py-1 uppercase font-bold tracking-widest animate-pulse border border-wine-100 rounded-sm">
+                  Filtrando por: {searchProductQuery}
+                </div>
+              )}
             </div>
             
             <div className="overflow-x-auto">
@@ -1852,6 +1917,133 @@ export function Admin() {
                       <td colSpan={6} className="py-12 text-center text-zinc-400 italic">Nenhum produto encontrado.</td>
                     </tr>
                   )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-zinc-100 flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800">Controle de Conversão de Venda</h2>
+                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-tight">Conversão: Adições na sacola vs. Vendas efetuadas</p>
+              </div>
+              {searchProductQuery && (
+                <div className="text-[10px] text-wine-800 bg-wine-50 px-2 py-1 uppercase font-bold tracking-widest animate-pulse border border-wine-100 rounded-sm">
+                  Filtrando por: {searchProductQuery}
+                </div>
+              )}
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50 border-b border-zinc-100">
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500">REF / Produto</th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">
+                      <div className="mb-1">Últimos 7 dias</div>
+                      <div className="flex flex-col gap-1 items-center">
+                        <div className="text-[9px] text-zinc-400 uppercase">Sacola: {filteredAndTotals.totals.clicks7}</div>
+                        <div className="text-[9px] text-zinc-400 uppercase">Vendas: {filteredAndTotals.totals.sold7}</div>
+                        <div className="text-wine-800 font-bold font-mono text-[11px] bg-wine-50 rounded-sm px-1 inline-block border border-wine-100">
+                          Conv: {filteredAndTotals.totals.clicks7 > 0 ? ((filteredAndTotals.totals.sold7 / filteredAndTotals.totals.clicks7) * 100).toFixed(1) : '0.0'}%
+                        </div>
+                      </div>
+                    </th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">
+                      <div className="mb-1">Mês Atual</div>
+                      <div className="flex flex-col gap-1 items-center">
+                        <div className="text-[9px] text-zinc-400 uppercase">Sacola: {filteredAndTotals.totals.clicksMonth}</div>
+                        <div className="text-[9px] text-zinc-400 uppercase">Vendas: {filteredAndTotals.totals.soldMonth}</div>
+                        <div className="text-wine-800 font-bold font-mono text-[11px] bg-wine-50 rounded-sm px-1 inline-block border border-wine-100">
+                          Conv: {filteredAndTotals.totals.clicksMonth > 0 ? ((filteredAndTotals.totals.soldMonth / filteredAndTotals.totals.clicksMonth) * 100).toFixed(1) : '0.0'}%
+                        </div>
+                      </div>
+                    </th>
+                    <th className="py-4 px-6 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-center">
+                      <div className="mb-1">Dados Totais</div>
+                      <div className="flex flex-col gap-1 items-center">
+                        <div className="text-[9px] text-zinc-400 uppercase">Sacola: {filteredAndTotals.totals.clicksTotal}</div>
+                        <div className="text-[9px] text-zinc-400 uppercase">Vendas: {filteredAndTotals.totals.soldTotal}</div>
+                        <div className="text-wine-800 font-bold font-mono text-[11px] bg-wine-50 rounded-sm px-1 inline-block border border-wine-100">
+                          Conv: {filteredAndTotals.totals.clicksTotal > 0 ? ((filteredAndTotals.totals.soldTotal / filteredAndTotals.totals.clicksTotal) * 100).toFixed(1) : '0.0'}%
+                        </div>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {filteredAndTotals.filtered
+                    .sort((a, b) => (a.referenceCode || '').localeCompare(b.referenceCode || ''))
+                    .map(p => {
+                      const s = salesData[p.id];
+                      const c = conversionData[p.id];
+                      
+                      const getConv = (sold: number, clicks: number) => {
+                        if (!clicks) return '0.0%';
+                        return `${((sold / clicks) * 100).toFixed(1)}%`;
+                      };
+
+                      return (
+                        <tr key={p.id} className="hover:bg-zinc-50/50 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-3">
+                              <span className="font-mono text-xs font-bold text-zinc-400">{p.referenceCode}</span>
+                              <img src={p.imageUrl} className="w-8 h-10 object-cover border border-zinc-100" />
+                              <span className="font-semibold text-zinc-900 text-xs truncate max-w-[150px]">{p.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                              <div>
+                                <p className="text-zinc-400 uppercase mb-0.5">Sacola</p>
+                                <p className="font-mono font-bold text-zinc-600">{c?.clicks7 || 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-zinc-400 uppercase mb-0.5">Venda</p>
+                                <p className="font-mono font-bold text-zinc-600">{s?.sold7 || 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-wine-800 uppercase mb-0.5 font-bold">Conv</p>
+                                <p className="font-mono font-bold text-wine-900">{getConv(s?.sold7 || 0, c?.clicks7 || 0)}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                              <div>
+                                <p className="text-zinc-400 uppercase mb-0.5">Sacola</p>
+                                <p className="font-mono font-bold text-zinc-600">{c?.clicksMonth || 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-zinc-400 uppercase mb-0.5">Venda</p>
+                                <p className="font-mono font-bold text-zinc-600">{s?.soldMonth || 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-wine-800 uppercase mb-0.5 font-bold">Conv</p>
+                                <p className="font-mono font-bold text-wine-900">{getConv(s?.soldMonth || 0, c?.clicksMonth || 0)}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                              <div>
+                                <p className="text-zinc-400 uppercase mb-0.5">Sacola</p>
+                                <p className="font-mono font-bold text-zinc-600">{c?.clicksTotal || 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-zinc-400 uppercase mb-0.5">Venda</p>
+                                <p className="font-mono font-bold text-zinc-600">{s?.soldTotal || 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-wine-800 uppercase mb-0.5 font-bold">Conv</p>
+                                <p className="font-mono font-bold text-wine-900">{getConv(s?.soldTotal || 0, c?.clicksTotal || 0)}</p>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>

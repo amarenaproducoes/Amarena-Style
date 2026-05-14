@@ -15,7 +15,7 @@ export function ProductDetails() {
   const { addItem, openCart } = useCartStore();
   const { 
     products: registeredProducts, sizeGuides, favorites, toggleFavorite, 
-    registerView, getProductBySlug, isStockSystemEnabled 
+    registerView, registerCartClick, getProductBySlug, isStockSystemEnabled 
   } = useProductStore();
   
   const allProducts = registeredProducts.filter(p => {
@@ -152,6 +152,7 @@ export function ProductDetails() {
     if (selectedSize) options.push(`Tam: ${selectedSize}`);
     
     addItem(product, options.join(' | '));
+    registerCartClick(product.id);
   };
 
   const relatedProducts = allProducts.filter(p => {
@@ -260,19 +261,23 @@ export function ProductDetails() {
                   transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
                 }}
               />
-              <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10" onClick={(e) => e.stopPropagation()}>
+              <div className="absolute top-4 right-4 flex flex-col gap-2 z-10" onClick={(e) => e.stopPropagation()}>
                 <button 
                   onClick={() => product && toggleFavorite(product.id)}
-                  className={`p-2 rounded-full shadow-sm transition-colors ${
+                  className={`p-2 rounded-full shadow-sm transition-all duration-300 border border-white/20 ${
                     product && favorites.includes(product.id) 
-                      ? 'bg-wine-50 text-wine-800' 
-                      : 'bg-white/80 backdrop-blur-sm md:bg-white text-zinc-600 hover:text-wine-800'
+                      ? 'bg-wine-800 text-white' 
+                      : 'bg-white/40 backdrop-blur-md text-zinc-900 md:bg-white md:text-zinc-600 hover:text-wine-800'
                   }`}
                   aria-label="Adicionar aos favoritos"
                 >
                   <Heart className={`w-5 h-5 ${product && favorites.includes(product.id) ? 'fill-current' : ''}`} />
                 </button>
-                <button onClick={handleShare} className="p-2 bg-white/80 backdrop-blur-sm md:bg-white rounded-full text-zinc-600 hover:text-wine-800 shadow-sm">
+                <button 
+                  onClick={handleShare} 
+                  className="p-2 bg-white/40 backdrop-blur-md md:bg-white rounded-full text-zinc-900 md:text-zinc-600 hover:text-wine-800 shadow-sm border border-white/20 transition-all duration-300"
+                  aria-label="Compartilhar produto"
+                >
                   <Share2 className="w-5 h-5" />
                 </button>
               </div>
@@ -543,6 +548,31 @@ export function ProductDetails() {
             className="fixed inset-0 bg-black z-[60] flex items-center justify-center p-0 md:p-8"
             onClick={() => setIsZoomOpen(false)}
           >
+            <div className="absolute top-4 right-16 flex items-center gap-2 z-[80]">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  product && toggleFavorite(product.id);
+                }}
+                className={`p-3 rounded-full backdrop-blur-md transition-all border border-white/10 ${
+                  product && favorites.includes(product.id) 
+                    ? 'bg-wine-800 text-white' 
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+              >
+                <Heart className={`w-6 h-6 ${product && favorites.includes(product.id) ? 'fill-current' : ''}`} />
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShare();
+                }}
+                className="p-3 bg-white/10 text-white hover:bg-white/20 backdrop-blur-md rounded-full border border-white/10"
+              >
+                <Share2 className="w-6 h-6" />
+              </button>
+            </div>
+
             <button 
               className="absolute top-4 right-4 text-white bg-black/40 p-3 rounded-full z-[80] backdrop-blur-sm"
               onClick={() => setIsZoomOpen(false)}
