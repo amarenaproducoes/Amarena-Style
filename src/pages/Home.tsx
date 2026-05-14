@@ -144,6 +144,10 @@ export function Home() {
                   src={currentBanner.imageUrl} 
                   alt={currentBanner.title}
                   className="absolute inset-0 w-full h-full object-cover"
+                  fetchPriority={currentBannerIndex === 0 ? "high" : "auto"}
+                  loading={currentBannerIndex === 0 ? "eager" : "lazy"}
+                  width="1200"
+                  height="600"
                 />
                 <div className="absolute bottom-4 md:bottom-8 left-4 right-4 md:left-8 w-auto md:w-max max-w-sm z-10">
                   <div className="bg-white/20 backdrop-blur-md p-3 md:p-4 shadow-sm rounded-sm border border-white/20 text-center md:text-left">

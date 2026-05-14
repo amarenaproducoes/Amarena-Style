@@ -23,7 +23,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
       viewport={{ once: true, margin: "-50px" }}
       className="group cursor-pointer flex flex-col h-full"
     >
-      <div className="relative aspect-[3/4] overflow-hidden bg-zinc-50 mb-3 flex items-center justify-center">
+      <div className="relative aspect-[2/3] overflow-hidden bg-zinc-50 mb-3 flex items-center justify-center">
         {index !== undefined && (
           <div className="absolute w-24 h-24 border border-wine-800/20 rounded-full flex items-center justify-center text-wine-800/10 font-serif text-4xl pointer-events-none z-0">
             {index.toString().padStart(2, '0')}
@@ -45,6 +45,8 @@ export function ProductCard({ product, index }: ProductCardProps) {
             alt={product.name} 
             className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 mix-blend-multiply"
             loading="lazy"
+            width="400"
+            height="600"
           />
         </Link>
         <button 

@@ -1,16 +1,19 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Navbar } from './components/layout/Navbar';
 import { AnnouncementBar } from './components/layout/AnnouncementBar';
 import { MenuDrawer } from './components/layout/MenuDrawer';
 import { CartDrawer } from './components/layout/CartDrawer';
-import { Home } from './pages/Home';
-import { ProductDetails } from './pages/ProductDetails';
-import { Admin } from './pages/Admin';
-import { Login } from './pages/Login';
-import { Favorites } from './pages/Favorites';
-import { PrivacyPolicy } from './pages/PrivacyPolicy';
-import { TermsOfUse } from './pages/TermsOfUse';
+
+// Lazy loading components
+const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
+const ProductDetails = lazy(() => import('./pages/ProductDetails').then(m => ({ default: m.ProductDetails })));
+const Admin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
+const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const Favorites = lazy(() => import('./pages/Favorites').then(m => ({ default: m.Favorites })));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const TermsOfUse = lazy(() => import('./pages/TermsOfUse').then(m => ({ default: m.TermsOfUse })));
+
 import { useProductStore } from './store/useProductStore';
 import { useAuthStore } from './store/useAuthStore';
 import { useCartStore } from './store/useCartStore';
@@ -153,22 +156,28 @@ export default function App() {
   return (
     <Router>
       <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/produto/:code" element={<ProductDetails />} />
-          <Route 
-            path={`/${ADMIN_SECRET_PATH}`} 
-            element={
-              <AdminGuard>
-                <Admin />
-              </AdminGuard>
-            } 
-          />
-          <Route path="/favoritos" element={<Favorites />} />
-          <Route path="/privacidade" element={<PrivacyPolicy />} />
-          <Route path="/termos" element={<TermsOfUse />} />
-          <Route path="/:slug" element={<Home />} />
-        </Routes>
+        <Suspense fallback={
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full border-2 border-wine-800 border-t-transparent animate-spin"></div>
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/produto/:code" element={<ProductDetails />} />
+            <Route 
+              path={`/${ADMIN_SECRET_PATH}`} 
+              element={
+                <AdminGuard>
+                  <Admin />
+                </AdminGuard>
+              } 
+            />
+            <Route path="/favoritos" element={<Favorites />} />
+            <Route path="/privacidade" element={<PrivacyPolicy />} />
+            <Route path="/termos" element={<TermsOfUse />} />
+            <Route path="/:slug" element={<Home />} />
+          </Routes>
+        </Suspense>
       </Layout>
     </Router>
   );

@@ -246,7 +246,7 @@ export function ProductDetails() {
           {/* Images */}
           <div className="w-full md:w-1/2">
             <div 
-              className="aspect-[3/4] bg-zinc-100 relative group cursor-zoom-in overflow-hidden" 
+              className="aspect-[2/3] bg-zinc-100 relative group cursor-zoom-in overflow-hidden" 
               onClick={() => setIsZoomOpen(true)}
               onMouseMove={handleMouseMove}
               onMouseEnter={() => setIsHovering(true)}
@@ -260,6 +260,10 @@ export function ProductDetails() {
                   transform: isHovering && window.innerWidth >= 768 ? `scale(2)` : `scale(1.05)`,
                   transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
                 }}
+                loading="eager"
+                fetchPriority="high"
+                width="800"
+                height="1200"
               />
               <div className="absolute top-4 right-4 flex flex-col gap-2 z-10" onClick={(e) => e.stopPropagation()}>
                 <button 
@@ -288,9 +292,16 @@ export function ProductDetails() {
                 <div 
                   key={idx} 
                   onClick={() => setSelectedImage(img)}
-                  className={`aspect-[3/4] bg-zinc-100 cursor-pointer ${selectedImage === img ? 'border border-wine-800' : 'opacity-70 hover:opacity-100'}`}
+                  className={`aspect-[2/3] bg-zinc-100 cursor-pointer ${selectedImage === img ? 'border border-wine-800' : 'opacity-70 hover:opacity-100'}`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <img 
+                    src={img} 
+                    alt="" 
+                    className="w-full h-full object-cover" 
+                    loading="lazy"
+                    width="150"
+                    height="225"
+                  />
                 </div>
               ))}
             </div>
@@ -596,7 +607,7 @@ export function ProductDetails() {
                 drag={zoomScale > 1}
                 dragElastic={0.1}
                 // Calculate constraints to allow viewing the full zoomed image
-                dragConstraints={zoomScale > 1 ? { left: -600 * zoomScale, right: 600 * zoomScale, top: -800 * zoomScale, bottom: 800 * zoomScale } : { left: 0, right: 0, top: 0, bottom: 0 }}
+                dragConstraints={zoomScale > 1 ? { left: -600 * zoomScale, right: 600 * zoomScale, top: -900 * zoomScale, bottom: 900 * zoomScale } : { left: 0, right: 0, top: 0, bottom: 0 }}
                 style={{ 
                   scale: zoomScale,
                 }}
