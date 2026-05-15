@@ -37,9 +37,10 @@ export function Admin() {
   const [linkCouponId, setLinkCouponId] = useState<string>('');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectedDeptNames, setSelectedDeptNames] = useState<string[]>([]);
+  const [selectedCatNames, setSelectedCatNames] = useState<string[]>([]);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
-  const handleCopyLinks = (type: 'products' | 'departments') => {
+  const handleCopyLinks = (type: 'products' | 'departments' | 'categories' | 'root') => {
     const baseUrl = window.location.origin;
     const coupon = coupons.find(c => c.id === linkCouponId);
     const couponParam = coupon ? `?cupom=${coupon.code}` : '';
@@ -49,11 +50,15 @@ export function Admin() {
       const activeProducts = products.filter(p => p.isActive !== false);
       const selectedProducts = activeProducts.filter(p => selectedProductIds.includes(p.id));
       text = selectedProducts.map(p => `${baseUrl}/produto/${p.referenceCode}${couponParam}`).join('\n');
-    } else {
+    } else if (type === 'root') {
+      text = `${baseUrl}/${couponParam}`;
+    } else if (type === 'departments') {
       text = selectedDeptNames.map(dept => `${baseUrl}/${slugify(dept)}${couponParam}`).join('\n');
+    } else if (type === 'categories') {
+      text = selectedCatNames.map(cat => `${baseUrl}/${slugify(cat)}${couponParam}`).join('\n');
     }
 
-    if (!text) {
+    if (!text && type !== 'root') {
       alert('Selecione pelo menos um item para copiar.');
       return;
     }
@@ -2518,9 +2523,20 @@ export function Admin() {
       {activeTab === 'links' && (
         <div className="space-y-8 animate-fade-in">
           <div className="bg-white p-6 border border-zinc-100 shadow-sm">
-            <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 mb-6 flex items-center gap-2">
-              <Ticket size={18} /> Seletor de Cupom
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 flex items-center gap-2">
+                <Ticket size={18} /> Seletor de Cupom
+              </h2>
+              {linkCouponId && (
+                <button 
+                  onClick={() => handleCopyLinks('root')}
+                  className="flex items-center gap-2 bg-wine-800 text-white px-4 py-2 text-[10px] uppercase font-bold tracking-widest hover:bg-wine-900 transition-colors"
+                >
+                  {copyStatus === 'root' ? <Check size={14}/> : <LinkIcon size={14}/>}
+                  {copyStatus === 'root' ? 'Copiado!' : 'Gerar Link Raiz + Cupom'}
+                </button>
+              )}
+            </div>
             <p className="text-xs text-zinc-500 mb-4 uppercase tracking-tight">Selecione um cupom para anexar aos links automaticamente:</p>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
               <button 
@@ -2624,48 +2640,98 @@ export function Admin() {
                 <h2 className="font-sans font-semibold uppercase tracking-widest text-sm text-wine-800 flex items-center gap-2">
                   <LinkIcon size={18} /> Categorias / Departamentos
                 </h2>
-                <button 
-                  onClick={() => handleCopyLinks('departments')}
-                  className="flex items-center gap-2 bg-wine-800 text-white px-4 py-2 text-[10px] uppercase font-bold tracking-widest hover:bg-wine-900 transition-colors"
-                >
-                  {copyStatus === 'departments' ? <Check size={14}/> : <Copy size={14}/>}
-                  {copyStatus === 'departments' ? 'Copiado!' : 'Copiar Selecionados'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleCopyLinks('departments')}
+                    className="flex items-center gap-2 bg-zinc-100 text-zinc-700 px-4 py-2 text-[10px] uppercase font-bold tracking-widest hover:bg-zinc-200 transition-colors"
+                  >
+                    {copyStatus === 'departments' ? <Check size={14}/> : <Copy size={14}/>}
+                    {copyStatus === 'departments' ? 'Depto Copiado!' : 'Copiar Deptos'}
+                  </button>
+                  <button 
+                    onClick={() => handleCopyLinks('categories')}
+                    className="flex items-center gap-2 bg-wine-800 text-white px-4 py-2 text-[10px] uppercase font-bold tracking-widest hover:bg-wine-900 transition-colors"
+                  >
+                    {copyStatus === 'categories' ? <Check size={14}/> : <Copy size={14}/>}
+                    {copyStatus === 'categories' ? 'Cat. Copiado!' : 'Copiar Categorias'}
+                  </button>
+                </div>
               </div>
 
-              <div className="mb-4 flex items-center gap-2 pb-2 border-b border-zinc-50">
-                <input 
-                  type="checkbox" 
-                  id="select-all-depts"
-                  className="w-4 h-4 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
-                  checked={selectedDeptNames.length === departments.length && departments.length > 0}
-                  onChange={(e) => {
-                    if (e.target.checked) setSelectedDeptNames(departments.map(d => d.name));
-                    else setSelectedDeptNames([]);
-                  }}
-                />
-                <label htmlFor="select-all-depts" className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 cursor-pointer">
-                  Selecionar Todos ({departments.length})
-                </label>
-              </div>
-
-              <div className="space-y-2">
-                {departments.map(dept => (
-                  <label key={dept.name} className="flex items-center gap-3 p-3 hover:bg-zinc-50 transition-colors cursor-pointer group rounded-sm border border-transparent hover:border-zinc-100 bg-zinc-50/30">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
-                      checked={selectedDeptNames.includes(dept.name)}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedDeptNames([...selectedDeptNames, dept.name]);
-                        else setSelectedDeptNames(selectedDeptNames.filter(name => name !== dept.name));
-                      }}
-                    />
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-zinc-900 uppercase tracking-widest">{dept.name}</p>
-                      <p className="text-[9px] text-zinc-400">{dept.categories.length} Categorias</p>
-                    </div>
+              <div className="mb-4 flex flex-wrap items-center gap-4 pb-2 border-b border-zinc-50">
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="select-all-depts"
+                    className="w-4 h-4 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
+                    checked={selectedDeptNames.length === departments.length && departments.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedDeptNames(departments.map(d => d.name));
+                      else setSelectedDeptNames([]);
+                    }}
+                  />
+                  <label htmlFor="select-all-depts" className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 cursor-pointer">
+                    Depto ({departments.length})
                   </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="select-all-cats"
+                    className="w-4 h-4 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
+                    checked={(() => {
+                      const allCats = departments.flatMap(d => d.categories);
+                      return selectedCatNames.length === allCats.length && allCats.length > 0;
+                    })()}
+                    onChange={(e) => {
+                      const allCats = departments.flatMap(d => d.categories);
+                      if (e.target.checked) setSelectedCatNames(allCats);
+                      else setSelectedCatNames([]);
+                    }}
+                  />
+                  <label htmlFor="select-all-cats" className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 cursor-pointer">
+                    Categorias ({departments.flatMap(d => d.categories).length})
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                {departments.map(dept => (
+                  <div key={dept.name} className="space-y-2">
+                    <label className="flex items-center gap-3 p-3 hover:bg-zinc-50 transition-colors cursor-pointer group rounded-sm border border-transparent hover:border-zinc-100 bg-zinc-50/30">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
+                        checked={selectedDeptNames.includes(dept.name)}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedDeptNames([...selectedDeptNames, dept.name]);
+                          else setSelectedDeptNames(selectedDeptNames.filter(name => name !== dept.name));
+                        }}
+                      />
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-zinc-900 uppercase tracking-widest">{dept.name}</p>
+                        <p className="text-[9px] text-zinc-400">Departamento</p>
+                      </div>
+                    </label>
+                    <div className="pl-8 grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {dept.categories.map(cat => (
+                        <label key={cat} className="flex items-center gap-2 p-2 hover:bg-zinc-50 transition-colors cursor-pointer group rounded-sm border border-zinc-50">
+                          <input 
+                            type="checkbox" 
+                            className="w-3 h-3 rounded border-zinc-300 text-wine-800 focus:ring-wine-800 cursor-pointer"
+                            checked={selectedCatNames.includes(cat)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedCatNames([...selectedCatNames, cat]);
+                              else setSelectedCatNames(selectedCatNames.filter(name => name !== cat));
+                            }}
+                          />
+                          <div className="flex-1">
+                            <p className="text-[10px] font-medium text-zinc-600 uppercase tracking-tight">{cat}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
